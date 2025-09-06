@@ -350,9 +350,20 @@ function App() {
 
       case 'target-mode':
         return (
-          <Box sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-              <Typography variant="h4" gutterBottom>
+          <Box sx={{ 
+            p: 3,
+            width: '100%',
+            maxWidth: '100%',
+            boxSizing: 'border-box'
+          }}>
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              mb: 3,
+              width: '100%'
+            }}>
+              <Typography variant="h4" gutterBottom sx={{ m: 0 }}>
                 🎯 目标模式配置
               </Typography>
               <FormControlLabel
@@ -364,7 +375,7 @@ function App() {
                   />
                 }
                 label={isAdvancedMode ? "高级模式" : "简单模式"}
-                sx={{ fontSize: '0.875rem' }}
+                sx={{ fontSize: '0.875rem', m: 0 }}
               />
             </Box>
             {/* 目标模式配置面板 */}
@@ -417,13 +428,20 @@ function App() {
     <Provider store={store}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <Box sx={{ display: 'flex' }}>
+        {/* 固定布局容器 - 确保右边界稳定 */}
+        <Box sx={{ 
+          display: 'flex',
+          width: '100vw',
+          height: '100vh',
+          overflow: 'hidden', // 防止整体页面滚动
+        }}>
           {/* 顶部应用栏 */}
           <AppBar 
             position="fixed" 
             sx={{ 
               zIndex: (theme) => theme.zIndex.drawer + 1,
-              height: 64
+              height: 64,
+              width: '100%'
             }}
           >
             <Toolbar>
@@ -458,7 +476,11 @@ function App() {
           {/* 左侧导航抽屉 */}
           <Box
             component="nav"
-            sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}
+            sx={{ 
+              width: { md: DRAWER_WIDTH }, 
+              flexShrink: 0,
+              zIndex: (theme) => theme.zIndex.drawer
+            }}
           >
             {/* 移动端临时抽屉 */}
             <Drawer
@@ -493,67 +515,107 @@ function App() {
             </Drawer>
           </Box>
 
-          {/* 主内容区 */}
+          {/* 主内容区 - 固定宽度计算 */}
           <Box
             component="main"
             sx={{
-              flexGrow: 1,
-              width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
+              // 固定宽度计算，确保右边界稳定
+              width: {
+                xs: '100%', // 移动端全宽
+                md: rightDrawerOpen 
+                  ? `calc(100vw - ${DRAWER_WIDTH}px - 320px)` // 桌面端：总宽度 - 左侧导航 - 右侧抽屉
+                  : `calc(100vw - ${DRAWER_WIDTH}px)` // 桌面端：总宽度 - 左侧导航
+              },
               mt: 8, // AppBar 高度补偿
               backgroundColor: 'background.default',
-              minHeight: 'calc(100vh - 64px)',
+              height: 'calc(100vh - 64px)',
+              overflow: 'hidden', // 主容器不滚动
+              // 平滑过渡
+              transition: theme.transitions.create(['width'], {
+                easing: theme.transitions.easing.sharp,
+                duration: theme.transitions.duration.standard,
+              }),
             }}
           >
-            {renderMainContent()}
+            {/* 内容滚动容器 */}
+            <Box sx={{ 
+              width: '100%',
+              height: '100%',
+              overflowY: 'auto',
+              overflowX: 'hidden',
+              // 自定义滚动条样式
+              '&::-webkit-scrollbar': {
+                width: '8px',
+              },
+              '&::-webkit-scrollbar-track': {
+                background: '#f1f1f1',
+                borderRadius: '4px',
+              },
+              '&::-webkit-scrollbar-thumb': {
+                background: '#c1c1c1',
+                borderRadius: '4px',
+              },
+              '&::-webkit-scrollbar-thumb:hover': {
+                background: '#a8a8a8',
+              },
+            }}>
+              {renderMainContent()}
+            </Box>
           </Box>
 
-          {/* 右侧任务抽屉 */}
-          <Drawer
-            anchor="right"
-            open={rightDrawerOpen}
-            onClose={handleRightDrawerToggle}
-            variant={isMobile ? "temporary" : "persistent"}
-            sx={{
-              '& .MuiDrawer-paper': {
+          {/* 右侧任务抽屉 - 固定定位 */}
+          {rightDrawerOpen && (
+            <Box
+              sx={{
                 width: isMobile ? '100vw' : 320,
-                mt: 8, // AppBar 高度补偿
                 height: 'calc(100vh - 64px)',
+                mt: 8,
+                backgroundColor: 'background.paper',
                 borderLeft: '1px solid',
                 borderColor: 'divider',
-              },
-            }}
-          >
-            <Box sx={{ p: 2 }}>
-              {/* 抽屉标题栏 */}
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'space-between',
-                mb: 2
-              }}>
-                <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <MonitorIcon />
-                  任务监控
+                position: isMobile ? 'fixed' : 'relative',
+                right: 0,
+                top: isMobile ? 64 : 0,
+                zIndex: isMobile ? (theme) => theme.zIndex.drawer + 2 : 'auto',
+                // 平滑过渡
+                transition: theme.transitions.create(['transform'], {
+                  easing: theme.transitions.easing.sharp,
+                  duration: theme.transitions.duration.standard,
+                }),
+              }}
+            >
+              <Box sx={{ p: 2, height: '100%', overflowY: 'auto' }}>
+                {/* 抽屉标题栏 */}
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  mb: 2
+                }}>
+                  <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <MonitorIcon />
+                    任务监控
+                  </Typography>
+                  <IconButton onClick={handleRightDrawerToggle} size="small">
+                    <CloseIcon />
+                  </IconButton>
+                </Box>
+                
+                <Divider sx={{ mb: 2 }} />
+                
+                {/* 任务监控内容 */}
+                <Typography variant="body2" color="text.secondary">
+                  暂无运行中的任务
                 </Typography>
-                <IconButton onClick={handleRightDrawerToggle} size="small">
-                  <CloseIcon />
-                </IconButton>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  • 后端连接状态：🟢 正常
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  • SSE连接状态：🟡 未连接
+                </Typography>
               </Box>
-              
-              <Divider sx={{ mb: 2 }} />
-              
-              {/* 任务监控内容 */}
-              <Typography variant="body2" color="text.secondary">
-                暂无运行中的任务
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                • 后端连接状态：🟢 正常
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                • SSE连接状态：🟡 未连接
-              </Typography>
             </Box>
-          </Drawer>
+          )}
         </Box>
       </ThemeProvider>
     </Provider>

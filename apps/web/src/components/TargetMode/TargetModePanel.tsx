@@ -160,10 +160,23 @@ export const TargetModePanel: React.FC<TargetModePanelProps> = ({
   }
 
   return (
-    <Box>
+    <Box sx={{ 
+      width: '100%',
+      maxWidth: '100%',
+      px: 0, // 移除水平内边距，让内容充分利用空间
+    }}>
       {/* 目标模式选择 */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
+      <Card sx={{ 
+        mb: 3,
+        mx: 0, // 移除水平外边距
+        borderRadius: 2,
+        boxShadow: 1
+      }}>
+        <CardContent sx={{ 
+          px: 3, // 统一内边距
+          py: 2,
+          '&:last-child': { pb: 2 } // 覆盖MUI默认的最后一个子元素padding
+        }}>
           <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <SettingsIcon />
             🎯 目标模式选择
@@ -214,8 +227,17 @@ export const TargetModePanel: React.FC<TargetModePanelProps> = ({
       </Card>
 
       {/* 通用配置 */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
+      <Card sx={{ 
+        mb: 3,
+        mx: 0, // 移除水平外边距
+        borderRadius: 2,
+        boxShadow: 1
+      }}>
+        <CardContent sx={{ 
+          px: 3, // 统一内边距
+          py: 2,
+          '&:last-child': { pb: 2 }
+        }}>
           <Typography variant="h6" gutterBottom>
             ⚙️ 通用配置
           </Typography>
@@ -319,7 +341,13 @@ export const TargetModePanel: React.FC<TargetModePanelProps> = ({
       {isAdvancedMode && (
         <>
           {/* 性能配置 */}
-          <Accordion sx={{ mb: 2 }}>
+          <Accordion sx={{ 
+            mb: 2,
+            mx: 0, // 移除水平外边距
+            borderRadius: 2,
+            boxShadow: 1,
+            '&:before': { display: 'none' } // 移除默认的分割线
+          }}>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Typography variant="h6">🚀 性能配置</Typography>
             </AccordionSummary>
@@ -364,7 +392,13 @@ export const TargetModePanel: React.FC<TargetModePanelProps> = ({
           </Accordion>
 
           {/* 错误处理配置 */}
-          <Accordion sx={{ mb: 2 }}>
+          <Accordion sx={{ 
+            mb: 2,
+            mx: 0,
+            borderRadius: 2,
+            boxShadow: 1,
+            '&:before': { display: 'none' }
+          }}>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Typography variant="h6">🛠️ 错误处理</Typography>
             </AccordionSummary>
@@ -394,7 +428,13 @@ export const TargetModePanel: React.FC<TargetModePanelProps> = ({
           </Accordion>
 
           {/* 远程功能配置 */}
-          <Accordion sx={{ mb: 2 }}>
+          <Accordion sx={{ 
+            mb: 2,
+            mx: 0,
+            borderRadius: 2,
+            boxShadow: 1,
+            '&:before': { display: 'none' }
+          }}>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Typography variant="h6">🌐 远程功能</Typography>
             </AccordionSummary>
