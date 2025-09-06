@@ -1,0 +1,12 @@
+{
+  "include": [
+    "services/api_gateway/py/src"
+  ],
+  "extraPaths": [
+    "services/api_gateway/py/src"
+  ],
+  "reportMissingImports": true,
+  "reportMissingModuleSource": "warning",
+  "venvPath": ".",
+  "venv": ".venv"
+}

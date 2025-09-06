@@ -1,0 +1,67 @@
+# OpenAPI 3.0 骨架：/convert 统一端点
+openapi: 3.0.3  # OpenAPI 版本
+info:  # 基本信息
+  title: Docling UI API Gateway  # 标题
+  version: 0.1.0  # 版本号
+  description: 统一的 /convert 接口，支持组合参数与异步任务。  # 描述
+paths:  # 路径定义
+  /convert:  # 转换端点
+    post:  # POST 方法
+      summary: 提交文档处理任务  # 简要说明
+      requestBody:  # 请求体
+        required: true  # 必填
+        content:  # 内容类型
+          application/json:  # JSON 类型
+            schema:  # 模式
+              $ref: '#/components/schemas/ConvertRequest'  # 引用请求模型
+      responses:  # 响应
+        '200':  # 200 OK
+          description: 异步任务已创建  # 描述
+          content:  # 内容
+            application/json:  # JSON 类型
+              schema:  # 模式
+                type: object  # 对象
+                properties:  # 字段
+                  job_id: { type: string }  # 任务ID
+                  status: { type: string, enum: [queued, created, finished] }  # 状态
+        '400':  # 400 错误
+          description: 参数冲突或缺失（中文错误）  # 描述
+          content:  # 内容
+            application/json:  # JSON
+              schema:  # 模式
+                $ref: '#/components/schemas/ErrorResponse'  # 引用错误结构
+components:  # 组件
+  schemas:  # 模型集合
+    ConvertRequest:  # 请求模型
+      type: object  # 对象
+      properties:  # 字段
+        input_sources: { type: array, items: { type: string } }  # 输入源
+        to_formats: { type: array, items: { type: string, enum: [markdown, html, json, yaml, text, doctags] } }  # 输出格式
+        chunking_strategy: { type: string }  # 分块策略
+        extraction_schema: { type: object, nullable: true }  # 提取 Schema
+        enable_remote_services: { type: boolean, default: false }  # 远程开关
+        picture_description_options:  # 图片描述配置
+          type: object  # 对象
+          properties:  # 字段
+            type: { type: string, enum: [local, remote] }  # 模型类型
+            model: { type: string }  # 模型名
+            prompt: { type: string }  # 提示词
+        images_scale: { type: number, default: 2.0 }  # 图片缩放倍数
+        generate_picture_images: { type: boolean, default: true }  # 是否落盘图片
+        num_threads: { type: integer, minimum: 1 }  # 线程数
+        page_batch_size: { type: integer, minimum: 1 }  # 分页批量
+        verbosity: { type: string, enum: [error, warn, info, debug], default: info }  # 日志级别
+        allow_external_plugins: { type: boolean, default: false }  # 外部插件
+        show_external_plugins: { type: boolean, default: false }  # 显示外部插件
+        image_export_mode: { type: string, enum: [embed, link, none], nullable: true }  # 图像导出模式
+        to_html_split_pages: { type: boolean, default: false }  # HTML 分页
+        output: { type: string }  # 输出目录
+        document_timeout: { type: integer, minimum: 1 }  # 文档超时（秒）
+      required:  # 必填字段
+        - input_sources  # 至少一个输入源
+    ErrorResponse:  # 错误响应
+      type: object  # 对象
+      properties:  # 字段
+        code: { type: string }  # 错误码
+        message: { type: string }  # 中文错误信息
+        details: { type: object, additionalProperties: true }  # 附加详情

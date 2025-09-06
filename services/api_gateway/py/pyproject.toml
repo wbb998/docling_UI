@@ -1,0 +1,18 @@
+# 子项目 Python 配置（与仓库根分离），用于开发网关所需依赖
+[project]
+name = "docling-ui-api-gateway"
+version = "0.1.0"
+description = "Thin API gateway for Docling UI (FastAPI), unified /convert endpoint"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+  "fastapi>=0.111.0",
+  "uvicorn[standard]>=0.30.0"
+]
+
+[tool.uv]  # 若使用 uv，可选
+managed = true
+
+[tool.pyright]
+include = ["services/api_gateway/py/src"]
+extraPaths = ["services/api_gateway/py/src"]
