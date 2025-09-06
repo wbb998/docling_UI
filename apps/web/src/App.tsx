@@ -44,7 +44,8 @@ import {
   Tune as SystemIcon,
   Speed as PerformanceIcon,
   Cloud as RemoteIcon,
-  Close as CloseIcon
+  Close as CloseIcon,
+  Warning as WarningIcon
 } from '@mui/icons-material'
 import { store } from './store/store'
 import { FileUploadPanel } from './components/FileUpload/FileUploadPanel'
@@ -53,6 +54,7 @@ import { PipelinePanel, PipelineType } from './components/Pipeline/PipelinePanel
 import { AdditionalFeaturesPanel, ImageDescriptionMode } from './components/AdditionalFeatures/AdditionalFeaturesPanel'
 import { ExecutionControlPanel } from './components/TaskExecution/ExecutionControlPanel'
 import { ResultPreviewPanel } from './components/ResultManagement/ResultPreviewPanel'
+import ValidationPanel from './components/Validation/ValidationPanel'
 
 // 导航菜单项类型定义
 interface NavigationItem {
@@ -101,6 +103,14 @@ const navigationItems: NavigationItem[] = [
     children: [
       { id: 'result-preview', label: '结果预览', icon: <PreviewIcon /> },
       { id: 'download-center', label: '下载中心', icon: <DownloadIcon /> }
+    ]
+  },
+  {
+    id: 'validation-rules',
+    label: '校验规则',
+    icon: <WarningIcon />,
+    children: [
+      { id: 'validation', label: '动态校验', icon: <WarningIcon /> }
     ]
   },
   {
@@ -218,6 +228,9 @@ function App() {
   // 任务结果状态
   const [currentJobId, setCurrentJobId] = useState<string>('')
   const [taskResults, setTaskResults] = useState<any>(null)
+  
+  // 校验状态管理
+  const [validationResults, setValidationResults] = useState<any[]>([])
   
   // 目标模式配置状态
   const [targetModeConfig, setTargetModeConfig] = useState({
@@ -347,6 +360,50 @@ function App() {
   // 处理右侧任务抽屉切换
   const handleRightDrawerToggle = () => {
     setRightDrawerOpen(!rightDrawerOpen)
+  }
+
+  // 校验结果变化处理
+  const handleValidationChange = (results: any[]) => {
+    setValidationResults(results)
+    console.log('校验结果更新:', results)
+  }
+
+  // 自动修复处理
+  const handleAutoFix = (fixes: Record<string, any>) => {
+    console.log('自动修复建议:', fixes)
+    
+    // 应用修复建议到相应的状态
+    if (fixes.outputFormats) {
+      setTargetModeConfig(prev => ({
+        ...prev,
+        outputFormats: fixes.outputFormats
+      }))
+    }
+    if (fixes.enableRemote !== undefined) {
+      setTargetModeConfig(prev => ({
+        ...prev,
+        enableRemote: fixes.enableRemote
+      }))
+    }
+    if (fixes.vlmProvider) {
+      setPipelineConfig(prev => ({
+        ...prev,
+        vlm: {
+          ...prev.vlm,
+          localModel: fixes.vlmProvider === 'local' ? 'llava' : prev.vlm.localModel,
+          useLocal: fixes.vlmProvider === 'local'
+        }
+      }))
+    }
+    if (fixes.asrProvider) {
+      setPipelineConfig(prev => ({
+        ...prev,
+        asr: {
+          ...prev.asr,
+          model: fixes.asrProvider === 'local' ? 'whisper-base' : prev.asr.model
+        }
+      }))
+    }
   }
 
   // 渲染导航菜单项
@@ -702,6 +759,51 @@ function App() {
               onDownloadAll={(format) => {
                 console.log('批量下载:', format)
               }}
+            />
+          </Box>
+        )
+
+      case 'validation':
+        return (
+          <Box sx={{ 
+            p: 3,
+            width: '100%',
+            maxWidth: '100%',
+            boxSizing: 'border-box'
+          }}>
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              mb: 3,
+              width: '100%'
+            }}>
+              <Typography variant="h4" gutterBottom sx={{ m: 0 }}>
+                ⚠️ 动态校验与规则
+              </Typography>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={isAdvancedMode}
+                    onChange={(e) => setIsAdvancedMode(e.target.checked)}
+                    color="primary"
+                  />
+                }
+                label={isAdvancedMode ? "高级模式" : "简单模式"}
+                sx={{ fontSize: '0.875rem', m: 0 }}
+              />
+            </Box>
+            {/* 动态校验面板 */}
+            <ValidationPanel 
+              targetMode={targetModeConfig.mode}
+              outputFormats={targetModeConfig.outputFormats}
+              imageExportMode={targetModeConfig.imageExportMode}
+              enableRemote={targetModeConfig.enableRemote}
+              vlmProvider={pipelineConfig.vlm.useLocal ? 'local' : 'remote'}
+              asrProvider={pipelineConfig.asr.model}
+              pipelineType={pipelineConfig.type}
+              onValidationChange={handleValidationChange}
+              onAutoFix={handleAutoFix}
             />
           </Box>
         )
