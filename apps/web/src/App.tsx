@@ -50,6 +50,7 @@ import { store } from './store/store'
 import { FileUploadPanel } from './components/FileUpload/FileUploadPanel'
 import { TargetModePanel, TargetMode } from './components/TargetMode/TargetModePanel'
 import { PipelinePanel, PipelineType } from './components/Pipeline/PipelinePanel'
+import { AdditionalFeaturesPanel, ImageDescriptionMode } from './components/AdditionalFeatures/AdditionalFeaturesPanel'
 
 // 导航菜单项类型定义
 interface NavigationItem {
@@ -261,6 +262,54 @@ function App() {
     }
   })
 
+  // 附加功能配置状态
+  const [additionalFeaturesConfig, setAdditionalFeaturesConfig] = useState({
+    // 图片描述配置
+    imageDescription: {
+      mode: ImageDescriptionMode.DISABLED,
+      localModel: 'blip2',
+      remoteService: 'openai-gpt4v',
+      remoteEndpoint: 'https://api.openai.com/v1',
+      apiKey: '',
+      prompt: '请详细描述这张图片的内容，包括主要对象、场景、颜色、布局等信息。',
+      maxTokens: 500,
+      temperature: 0.7
+    },
+    // 产物导出配置
+    artifactExport: {
+      enabledFormats: ['markdown'],
+      csvOptions: {
+        delimiter: ',',
+        encoding: 'utf-8',
+        includeHeaders: true
+      },
+      htmlOptions: {
+        includeStyles: true,
+        embedImages: false,
+        responsive: true
+      },
+      pngOptions: {
+        quality: 90,
+        dpi: 300,
+        backgroundColor: '#FFFFFF'
+      },
+      parquetOptions: {
+        compression: 'snappy',
+        rowGroupSize: 128
+      }
+    },
+    // 后处理配置
+    postProcessing: {
+      enableTranslation: false,
+      sourceLanguage: 'auto',
+      targetLanguages: [],
+      translationService: 'google-translate',
+      translationEndpoint: 'https://translate.googleapis.com/translate/v2',
+      translationApiKey: '',
+      customProcessingSteps: []
+    }
+  })
+
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
@@ -457,6 +506,46 @@ function App() {
               isAdvancedMode={isAdvancedMode}
               config={pipelineConfig}
               onChange={setPipelineConfig}
+              enableRemote={targetModeConfig.enableRemote}
+            />
+          </Box>
+        )
+
+      case 'additional-features':
+        return (
+          <Box sx={{ 
+            p: 3,
+            width: '100%',
+            maxWidth: '100%',
+            boxSizing: 'border-box'
+          }}>
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              mb: 3,
+              width: '100%'
+            }}>
+              <Typography variant="h4" gutterBottom sx={{ m: 0 }}>
+                ⚡ 附加功能
+              </Typography>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={isAdvancedMode}
+                    onChange={(e) => setIsAdvancedMode(e.target.checked)}
+                    color="primary"
+                  />
+                }
+                label={isAdvancedMode ? "高级模式" : "简单模式"}
+                sx={{ fontSize: '0.875rem', m: 0 }}
+              />
+            </Box>
+            {/* 附加功能配置面板 */}
+            <AdditionalFeaturesPanel 
+              isAdvancedMode={isAdvancedMode}
+              config={additionalFeaturesConfig}
+              onChange={setAdditionalFeaturesConfig}
               enableRemote={targetModeConfig.enableRemote}
             />
           </Box>

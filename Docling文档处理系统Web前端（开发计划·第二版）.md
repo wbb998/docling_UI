@@ -59,9 +59,9 @@ Note:
 
 [X] 模块3：流水线配置（STANDARD：OCR/增强；VLM：本地/远程；ASR：模型选择）
 
-[/] 模块4：附加功能（图片描述：本地/远程需enable_remote；产物导出：CSV/HTML/PNG/Parquet；后处理：翻译）
+[X] 模块4：附加功能（图片描述：本地/远程需enable_remote；产物导出：CSV/HTML/PNG/Parquet；后处理：翻译）
 
-[ ] 模块5：任务执行与可观测性（POST /convert，job_id 轮询/SSE，进度/日志，取消）
+[/] 模块5：任务执行与可观测性（POST /convert，job_id 轮询/SSE，进度/日志，取消）
 
 [ ] 模块6：结果预览与下载（MD/HTML/JSON 预览、单个/打包下载、错误报告中文提示）
 
