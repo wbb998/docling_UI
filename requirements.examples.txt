@@ -1,0 +1,59 @@
+# 注意：本文件用于运行文档示例（Conversion / Picture annotation / Information extraction / Serialization & chunking 等）
+# - 若在本仓库内开发，推荐本地可编辑安装（含extras）：pip install -e ".[vlm,rapidocr,asr]"
+# - 若单独新环境复现实例，使用本 requirements.examples.txt
+# - Windows 下建议使用 Python 3.10+，并优先安装 CPU 版本的 torch；ASR 需要本机安装 ffmpeg（非Python包）
+
+# 基础功能与核心SDK（含可选模块：视觉VLM、RapidOCR、ASR）
+docling[vlm,rapidocr,asr]==2.51.0  # 文档解析/转换核心SDK + 视觉模型支持 + RapidOCR + 语音识别
+
+# 通用工具（示例中直接使用）
+pyyaml>=6.0.1,<7        # 读写 YAML（示例中 safe_dump 等）
+rich>=13.7,<14          # 终端美化输出（示例面板/高亮）
+tabulate>=0.9,<1        # 表格渲染（pandas.DataFrame.to_markdown 需要）
+python-dotenv>=1.0,<2   # 读取 .env（远程VLM/watsonx示例）
+ipython>=8.0,<9         # 笔记本/交互展示（信息抽取示例用 display）
+typing_extensions>=4.9,<5  # 提供 override 等类型工具（序列化示例中使用）
+
+# 深度学习运行时（Windows/CPU优先，满足 EasyOCR/Transformers 等依赖）
+torch>=2.2,<3           # PyTorch（EasyOCR/Transformers 所需；请根据CUDA情况自行选择对应whl）
+torchvision>=0.17,<0.20 # 视觉工具（部分模型/图像处理会用到）
+
+# 文本/模型与分词（部分来自 docling[vlm]，此处显式声明以确保版本收敛）
+transformers>=4.46,<5   # 分词器/多模态推理基础
+accelerate>=1.2.1,<2    # 推理加速（与transformers配套）
+
+# 数据处理与文件格式
+pandas>=2.1.4,<3        # 表格/CSV/数据处理（docling已依赖，此处显式声明以便锁定）
+pyarrow>=14,<17         # Parquet 写入引擎（生成多模态 parquet 示例必需）
+
+# 网络与下载（部分已由 docling 依赖，此处显式列出）
+requests>=2.32.2,<3     # HTTP 请求（远程模型/数据下载）
+
+# RAG / 向量检索（XML示例用到 LlamaIndex 与 Milvus Lite）
+llama-index-core>=0.11,<1
+llama-index-readers-docling>=0.2,<1
+llama-index-node-parser-docling>=0.2,<1
+llama-index-embeddings-huggingface>=0.2,<1
+llama-index-llms-huggingface-api>=0.2,<1
+llama-index-vector-stores-milvus>=0.2,<1
+pymilvus>=2.4,<3        # Milvus Lite（本地URI 即可，无需单独Milvus服务）
+
+# RapidOCR（docling[rapidocr]会安装，以下为显式补充/说明以便锁版本与Win兼容）
+onnxruntime>=1.18,<2    # ONNX 推理后端（RapidOCR）
+modelscope>=1.29        # 模型下载（RapidOCR示例使用）
+
+# 可选：Tesseract Python 绑定（示例多用 CLI 方式；如需Python绑定请安装且准备系统级Tesseract）
+# tesserocr>=2.7.1,<3   # Windows 安装较复杂，需要 Tesseract SDK 及头文件
+
+# 可选：示例/调试扩展
+# datasets>=2.21,<3     # 示例中展示如何用HF datasets读取 parquet（注释部分）
+# tiktoken>=0.7,<1      # 若在分块中使用 OpenAI 分词器（需 docling-core[chunking-openai]）
+
+# 可选：向量库本地 Lite 引擎（Milvus Lite，便于无需外部服务本地运行）
+# milvus-lite>=2.4,<3   # 与 pymilvus 搭配；若本地 Lite 初始化失败，可安装此包
+
+# 可选：本地大模型推理服务
+# vllm>=0.5,<1          # 若需运行 `vllm serve MODEL_NAME` 提供本地 /v1/chat/completions
+
+# 可选：Mac 平台 VLM 运行时
+# mlx-vlm>=0.3,<1       # 仅 macOS arm64；Windows 无需安装
