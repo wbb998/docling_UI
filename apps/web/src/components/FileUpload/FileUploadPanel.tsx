@@ -104,9 +104,10 @@ const SUPPORTED_MIME_TYPES = [
 
 interface FileUploadPanelProps {
   isAdvancedMode: boolean
+  onFilesChange?: (files: File[]) => void // 文件变化回调
 }
 
-export const FileUploadPanel: React.FC<FileUploadPanelProps> = ({ isAdvancedMode }) => {
+export const FileUploadPanel: React.FC<FileUploadPanelProps> = ({ isAdvancedMode, onFilesChange }) => {
   // 状态管理
   const [fileQueue, setFileQueue] = useState<FileItem[]>([])
   const [isDragOver, setIsDragOver] = useState(false)
@@ -146,6 +147,15 @@ export const FileUploadPanel: React.FC<FileUploadPanelProps> = ({ isAdvancedMode
   // 引用
   const fileInputRef = useRef<HTMLInputElement>(null)
   const folderInputRef = useRef<HTMLInputElement>(null)
+
+  // 监听文件队列变化，通知父组件
+  React.useEffect(() => {
+    const validFiles = fileQueue
+      .filter(item => item.status === FileStatus.COMPLETED && item.file)
+      .map(item => item.file!)
+    
+    onFilesChange?.(validFiles)
+  }, [fileQueue, onFilesChange])
 
   // 生成唯一ID
   const generateId = () => Math.random().toString(36).substr(2, 9)

@@ -51,6 +51,7 @@ import { FileUploadPanel } from './components/FileUpload/FileUploadPanel'
 import { TargetModePanel, TargetMode } from './components/TargetMode/TargetModePanel'
 import { PipelinePanel, PipelineType } from './components/Pipeline/PipelinePanel'
 import { AdditionalFeaturesPanel, ImageDescriptionMode } from './components/AdditionalFeatures/AdditionalFeaturesPanel'
+import { ExecutionControlPanel } from './components/TaskExecution/ExecutionControlPanel'
 
 // 导航菜单项类型定义
 interface NavigationItem {
@@ -209,6 +210,9 @@ function App() {
   const [mobileOpen, setMobileOpen] = useState(false) // 移动端导航抽屉状态
   const [rightDrawerOpen, setRightDrawerOpen] = useState(false) // 右侧任务抽屉状态
   const [isAdvancedMode, setIsAdvancedMode] = useState(false) // 简单/高级模式切换
+  
+  // 文件管理状态
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
   
   // 目标模式配置状态
   const [targetModeConfig, setTargetModeConfig] = useState({
@@ -428,7 +432,10 @@ function App() {
               />
             </Box>
             {/* 文件上传面板 */}
-            <FileUploadPanel isAdvancedMode={isAdvancedMode} />
+            <FileUploadPanel 
+              isAdvancedMode={isAdvancedMode} 
+              onFilesChange={setUploadedFiles}
+            />
           </Box>
         )
 
@@ -547,6 +554,58 @@ function App() {
               config={additionalFeaturesConfig}
               onChange={setAdditionalFeaturesConfig}
               enableRemote={targetModeConfig.enableRemote}
+            />
+          </Box>
+        )
+
+      case 'execution-control':
+        return (
+          <Box sx={{ 
+            p: 3,
+            width: '100%',
+            maxWidth: '100%',
+            boxSizing: 'border-box'
+          }}>
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              mb: 3,
+              width: '100%'
+            }}>
+              <Typography variant="h4" gutterBottom sx={{ m: 0 }}>
+                🚀 任务执行控制
+              </Typography>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={isAdvancedMode}
+                    onChange={(e) => setIsAdvancedMode(e.target.checked)}
+                    color="primary"
+                  />
+                }
+                label={isAdvancedMode ? "高级模式" : "简单模式"}
+                sx={{ fontSize: '0.875rem', m: 0 }}
+              />
+            </Box>
+            {/* 任务执行控制面板 */}
+            <ExecutionControlPanel 
+              files={uploadedFiles}
+              targetModeConfig={targetModeConfig}
+              pipelineConfig={pipelineConfig}
+              additionalFeaturesConfig={additionalFeaturesConfig}
+              onTaskStart={(jobId) => {
+                console.log('任务已启动:', jobId)
+                // 可以在这里添加任务启动后的逻辑
+              }}
+              onTaskComplete={(jobId, results) => {
+                console.log('任务已完成:', jobId, results)
+                // 可以在这里添加任务完成后的逻辑，比如跳转到结果页面
+              }}
+              onTaskError={(jobId, error) => {
+                console.error('任务执行失败:', jobId, error)
+                // 可以在这里添加错误处理逻辑
+              }}
             />
           </Box>
         )
