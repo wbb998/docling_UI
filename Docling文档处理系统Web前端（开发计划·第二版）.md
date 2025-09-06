@@ -33,12 +33,7 @@
 
 ## Design
 
-- 视觉与布局：MUI v6 主题化（primary #1976d2、success #2e7d32、warning #ed6c02、error #d32f2f），浅色为主，强调对比与留白；固定顶部AppBar + 左侧Drawer，主内容区设置pt以避免遮挡。
-- 字体与中文：系统中文优先（'Microsoft YaHei', 'PingFang SC'），UTF-8+CRLF，避免中文乱码。
-- 交互：按钮/切换/单复选统一MUI风格；表单分区（目标模式/流水线/通用/附加/性能），渐进披露；参数冲突即时校验与中文提示；长任务提供进度条+日志区；失败态采用Alert/对话框。
-- 信息架构：
-  1) 简单模式：上传区 + 一键转换（Minimal/默认Markdown）；
-  2) 高级模式：配置面板（目标模式互斥）+ 流水线面板（STANDARD/VLM/ASR）+ 附加面板（图片描述/产物）+ 性能面板 + 任务区（进度/日志）+ 结果区（预览/下载）。
+已确定采用方案A - 控制台三栏式布局：左侧功能导航栏(200px)、中央主工作区(flex-grow)、右侧任务抽屉(300px可滑出)。响应式设计：移动端左侧导航收起为汉堡菜单，右侧抽屉全屏覆盖。严格贴合功能清单与业务流程图，内置参数校验与SSE/轮询兜底。
 
 ## Plan
 
@@ -52,9 +47,13 @@ Note:
 
 [X] 开发计划（第二版）制定与确认
 
-[ ] 项目初始化和基础架构搭建（Vite+TS+MUI+RTK+Axios，Windows脚本：kill-port/start-dev，.editorconfig/.gitattributes）
+[X] 界面布局与交互多方案输出（A/B/C/D）
 
-[ ] 模块1：文件上传与队列（单/多/文件夹/URL、进度、移除、大小/类型校验）
+[/] 确定布局方案A并制定详细交互原型
+
+[X] 项目初始化和基础架构搭建（Vite+TS+MUI+RTK+Axios，Windows脚本：kill-port/start-dev，.editorconfig/.gitattributes）
+
+[/] 模块1：文件上传与队列（单/多/文件夹/URL、进度、移除、大小/类型校验）
 
 [ ] 模块2：目标模式与通用配置（Conversion/Chunking/Extraction互斥，output/from_formats/image_export_mode、性能/错误处理/远程开关）
 
