@@ -71,6 +71,17 @@
 | `abort_on_error`| `boolean` | 否 | 遇到错误时是否立即中止。默认为 `false`。 |
 | `document_timeout`| `number` | 否 | 处理单个文档的超时时间（秒）。 |
 
+### 3.6 扩展参数（新增）
+
+| 参数名 | 类型 | 必须 | 描述 |
+| :--- | :--- | :--- | :--- |
+| `page_batch_size` | `number` | 否 | 每批次处理的页面数量（配合大文档分页并行）。 |
+| `verbosity` | `string` | 否 | 日志级别：`error`/`warn`/`info`/`debug`，默认 `info`。 |
+| `allow_external_plugins` | `boolean` | 否 | 是否允许加载外部插件。 |
+| `show_external_plugins` | `boolean` | 否 | 是否返回可用外部插件列表。 |
+| `images_scale` | `number` | 否 | 图片描述时的图像缩放倍数（影响质量与耗时），示例默认 `2.0`。仅在 `do_picture_description=true` 时生效。 |
+| `generate_picture_images` | `boolean` | 否 | 是否生成图片文件用于预览/导出，默认 `true`。仅在 `do_picture_description=true` 时生效。 |
+
 ---
 
 ## 4. 详细对象结构
@@ -145,7 +156,7 @@
     "api_options": {
         "url": "http://localhost:8000/v1/chat/completions",
         "params": {
-            "model": "ibm-granite/granite-vision-3.3-2b",
+            "model": "ibm-granite-vision-3.3-2b",
             "max_completion_tokens": 100
         },
         "headers": {
@@ -258,3 +269,47 @@ API响应将包含任务的状态和结果。
   ],
   "errors": []
 }
+```
+
+---
+
+## 7. 参数约束（新增）
+
+- 当 `extraction_schema` 或 `chunking_strategy` 存在时：输出强制为 `JSON`；若同时传入 `to_formats`，服务端返回 400 错误（`E001_INVALID_INPUT`）。
+- 当 `picture_description_options.type=remote` 且 `enable_remote_services` 不为 `true` 时：返回 400（`E001_INVALID_INPUT`）。
+- `image_export_mode` 仅对富文本输出（Markdown/HTML）生效；仅 JSON 输出且未选择 `pages_png/pictures_png` 产物导出时，该设置对结果无可见影响。
+
+## 8. 错误码与错误响应结构（新增）
+
+- 统一错误结构：
+```json
+{
+  "code": "E001_INVALID_INPUT",
+  "message": "参数组合冲突：已选择信息提取，输出格式固定为 JSON，请移除 to_formats。",
+  "details": { "conflicts": ["extraction_schema", "to_formats"] }
+}
+```
+
+- 常用错误码：
+  - `E001_INVALID_INPUT`：非法参数/组合冲突
+  - `E101_DOWNLOAD_FAILED`：URL 下载失败/超时
+  - `E201_OCR_FAILED`：OCR 引擎错误
+  - `E301_VLM_REMOTE_AUTH`：远程 VLM 认证/权限错误
+  - `E302_VLM_REMOTE_TIMEOUT`：远程 VLM 超时
+  - `E401_TIMEOUT`：文档处理超时（`document_timeout`）
+  - `E5XX_INTERNAL`：系统内部错误
+
+- 错误信息要求中文可读提示，日志与第三方错误信息应放入 `details`，敏感信息需脱敏。
+
+## 9. 异步任务接口（可选增强）
+
+- `POST /convert` → `{ job_id }`
+- `GET /jobs/{id}/status` → `{ progress, current_file, state }`
+- `GET /jobs/{id}/result` → 汇总输出与错误
+- `SSE /jobs/{id}/events` → 实时日志/进度事件流
+- 建议前端请求头包含：`X-Request-Id`、`Idempotency-Key`，后端支持幂等重试。
+
+## 10. 命名统一说明（新增）
+
+- “HTML 分页”参数标准命名：`to_html_split_pages`（与前端/配置一致）。如需在说明中展示格式名与参数名差异，请明确映射关系。
+- `to_formats` 的值统一使用小写：`markdown/html/json/yaml/text/doctags`。
