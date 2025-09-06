@@ -52,6 +52,7 @@ import { TargetModePanel, TargetMode } from './components/TargetMode/TargetModeP
 import { PipelinePanel, PipelineType } from './components/Pipeline/PipelinePanel'
 import { AdditionalFeaturesPanel, ImageDescriptionMode } from './components/AdditionalFeatures/AdditionalFeaturesPanel'
 import { ExecutionControlPanel } from './components/TaskExecution/ExecutionControlPanel'
+import { ResultPreviewPanel } from './components/ResultManagement/ResultPreviewPanel'
 
 // 导航菜单项类型定义
 interface NavigationItem {
@@ -213,6 +214,10 @@ function App() {
   
   // 文件管理状态
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
+  
+  // 任务结果状态
+  const [currentJobId, setCurrentJobId] = useState<string>('')
+  const [taskResults, setTaskResults] = useState<any>(null)
   
   // 目标模式配置状态
   const [targetModeConfig, setTargetModeConfig] = useState({
@@ -596,15 +601,106 @@ function App() {
               additionalFeaturesConfig={additionalFeaturesConfig}
               onTaskStart={(jobId) => {
                 console.log('任务已启动:', jobId)
-                // 可以在这里添加任务启动后的逻辑
+                setCurrentJobId(jobId)
+                setTaskResults(null) // 清空之前的结果
               }}
               onTaskComplete={(jobId, results) => {
                 console.log('任务已完成:', jobId, results)
-                // 可以在这里添加任务完成后的逻辑，比如跳转到结果页面
+                setCurrentJobId(jobId)
+                setTaskResults(results)
+                // 自动切换到结果预览页面
+                setSelectedNavItem('result-preview')
               }}
               onTaskError={(jobId, error) => {
                 console.error('任务执行失败:', jobId, error)
+                setCurrentJobId(jobId)
                 // 可以在这里添加错误处理逻辑
+              }}
+            />
+          </Box>
+        )
+
+      case 'result-preview':
+        return (
+          <Box sx={{ 
+            p: 3,
+            width: '100%',
+            maxWidth: '100%',
+            boxSizing: 'border-box'
+          }}>
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              mb: 3,
+              width: '100%'
+            }}>
+              <Typography variant="h4" gutterBottom sx={{ m: 0 }}>
+                📊 结果预览
+              </Typography>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={isAdvancedMode}
+                    onChange={(e) => setIsAdvancedMode(e.target.checked)}
+                    color="primary"
+                  />
+                }
+                label={isAdvancedMode ? "高级模式" : "简单模式"}
+                sx={{ fontSize: '0.875rem', m: 0 }}
+              />
+            </Box>
+            {/* 结果预览面板 */}
+            <ResultPreviewPanel 
+              jobId={currentJobId}
+              taskResult={taskResults}
+              onRefresh={() => {
+                console.log('刷新结果数据')
+                // 这里可以添加刷新逻辑
+              }}
+              onDownloadFile={(fileId) => {
+                console.log('下载文件:', fileId)
+                // 这里可以添加单文件下载逻辑
+              }}
+              onDownloadAll={(format) => {
+                console.log('批量下载:', format)
+                // 这里可以添加批量下载逻辑
+              }}
+            />
+          </Box>
+        )
+
+      case 'download-center':
+        return (
+          <Box sx={{ 
+            p: 3,
+            width: '100%',
+            maxWidth: '100%',
+            boxSizing: 'border-box'
+          }}>
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              mb: 3,
+              width: '100%'
+            }}>
+              <Typography variant="h4" gutterBottom sx={{ m: 0 }}>
+                📥 下载中心
+              </Typography>
+            </Box>
+            {/* 下载中心内容 */}
+            <ResultPreviewPanel 
+              jobId={currentJobId}
+              taskResult={taskResults}
+              onRefresh={() => {
+                console.log('刷新下载中心')
+              }}
+              onDownloadFile={(fileId) => {
+                console.log('下载文件:', fileId)
+              }}
+              onDownloadAll={(format) => {
+                console.log('批量下载:', format)
               }}
             />
           </Box>
