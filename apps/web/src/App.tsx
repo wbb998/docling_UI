@@ -49,6 +49,7 @@ import {
 import { store } from './store/store'
 import { FileUploadPanel } from './components/FileUpload/FileUploadPanel'
 import { TargetModePanel, TargetMode } from './components/TargetMode/TargetModePanel'
+import { PipelinePanel, PipelineType } from './components/Pipeline/PipelinePanel'
 
 // 导航菜单项类型定义
 interface NavigationItem {
@@ -226,6 +227,40 @@ function App() {
     remoteEndpoint: ''
   })
 
+  // 流水线配置状态
+  const [pipelineConfig, setPipelineConfig] = useState({
+    type: PipelineType.STANDARD,
+    // STANDARD流水线配置
+    standard: {
+      ocrEngine: 'easyocr',
+      enableOcrEnhancement: true,
+      ocrConfidenceThreshold: 80,
+      enableLayoutAnalysis: true,
+      enableTableDetection: true
+    },
+    // VLM流水线配置
+    vlm: {
+      useLocal: true,
+      localModel: 'llava',
+      remoteModel: 'gpt4v',
+      remoteEndpoint: 'https://api.openai.com/v1',
+      apiKey: '',
+      maxTokens: 1000,
+      temperature: 0.7,
+      enableImageDescription: true,
+      enableTableOcr: false
+    },
+    // ASR流水线配置
+    asr: {
+      model: 'whisper-base',
+      language: 'auto',
+      enableTranslation: false,
+      targetLanguage: 'zh',
+      enableTimestamps: true,
+      enableSpeakerDiarization: false
+    }
+  })
+
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
@@ -383,6 +418,46 @@ function App() {
               isAdvancedMode={isAdvancedMode}
               config={targetModeConfig}
               onChange={setTargetModeConfig}
+            />
+          </Box>
+        )
+
+      case 'pipeline-settings':
+        return (
+          <Box sx={{ 
+            p: 3,
+            width: '100%',
+            maxWidth: '100%',
+            boxSizing: 'border-box'
+          }}>
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              mb: 3,
+              width: '100%'
+            }}>
+              <Typography variant="h4" gutterBottom sx={{ m: 0 }}>
+                🔧 流水线设置
+              </Typography>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={isAdvancedMode}
+                    onChange={(e) => setIsAdvancedMode(e.target.checked)}
+                    color="primary"
+                  />
+                }
+                label={isAdvancedMode ? "高级模式" : "简单模式"}
+                sx={{ fontSize: '0.875rem', m: 0 }}
+              />
+            </Box>
+            {/* 流水线配置面板 */}
+            <PipelinePanel 
+              isAdvancedMode={isAdvancedMode}
+              config={pipelineConfig}
+              onChange={setPipelineConfig}
+              enableRemote={targetModeConfig.enableRemote}
             />
           </Box>
         )
