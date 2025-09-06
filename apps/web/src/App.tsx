@@ -1,21 +1,119 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Provider } from 'react-redux'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
-import { AppBar, Toolbar, Typography, Container, Box, Card, CardContent, CardActions, Button, Chip } from '@mui/material'
 import { 
+  AppBar, 
+  Toolbar, 
+  Typography, 
+  Box, 
+  Drawer,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Collapse,
+  IconButton,
+  useMediaQuery,
+  useTheme,
+  Switch,
+  FormControlLabel,
+  Divider
+} from '@mui/material'
+import { 
+  Menu as MenuIcon,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
+  ExpandLess,
+  ExpandMore,
+  FolderOpen as FileManageIcon,
   CloudUpload as UploadIcon,
+  Queue as QueueIcon,
   Settings as ConfigIcon,
-  Timeline as MonitorIcon,
-  Download as ResultIcon,
-  Description as DocIcon
+  GpsFixed as TargetIcon,
+  Build as PipelineIcon,
+  Bolt as FeatureIcon,
+  Assessment as MonitorIcon,
+  Rocket as ExecuteIcon,
+  TrendingUp as ProgressIcon,
+  Description as LogIcon,
+  ViewList as ResultIcon,
+  Visibility as PreviewIcon,
+  Download as DownloadIcon,
+  Tune as SystemIcon,
+  Speed as PerformanceIcon,
+  Cloud as RemoteIcon,
+  Close as CloseIcon
 } from '@mui/icons-material'
 import { store } from './store/store'
+import { FileUploadPanel } from './components/FileUpload/FileUploadPanel'
+import { TargetModePanel, TargetMode } from './components/TargetMode/TargetModePanel'
 
-// Material-UI 主题配置 - 符合设计要求
+// 导航菜单项类型定义
+interface NavigationItem {
+  id: string
+  label: string
+  icon: React.ReactNode
+  children?: NavigationItem[]
+  status?: 'normal' | 'warning' | 'error' | 'active'
+}
+
+// 导航菜单数据
+const navigationItems: NavigationItem[] = [
+  {
+    id: 'file-management',
+    label: '文件管理',
+    icon: <FileManageIcon />,
+    children: [
+      { id: 'file-upload', label: '文件上传', icon: <UploadIcon /> },
+      { id: 'upload-queue', label: '上传队列', icon: <QueueIcon /> }
+    ]
+  },
+  {
+    id: 'processing-config',
+    label: '处理配置',
+    icon: <ConfigIcon />,
+    children: [
+      { id: 'target-mode', label: '目标模式', icon: <TargetIcon /> },
+      { id: 'pipeline-settings', label: '流水线设置', icon: <PipelineIcon /> },
+      { id: 'additional-features', label: '附加功能', icon: <FeatureIcon /> }
+    ]
+  },
+  {
+    id: 'task-monitoring',
+    label: '任务监控',
+    icon: <MonitorIcon />,
+    children: [
+      { id: 'execution-control', label: '执行控制', icon: <ExecuteIcon /> },
+      { id: 'progress-monitoring', label: '进度监控', icon: <ProgressIcon /> },
+      { id: 'log-viewing', label: '日志查看', icon: <LogIcon /> }
+    ]
+  },
+  {
+    id: 'result-management',
+    label: '结果管理',
+    icon: <ResultIcon />,
+    children: [
+      { id: 'result-preview', label: '结果预览', icon: <PreviewIcon /> },
+      { id: 'download-center', label: '下载中心', icon: <DownloadIcon /> }
+    ]
+  },
+  {
+    id: 'system-settings',
+    label: '系统设置',
+    icon: <SystemIcon />,
+    children: [
+      { id: 'performance-debug', label: '性能调试', icon: <PerformanceIcon /> },
+      { id: 'remote-config', label: '远程配置', icon: <RemoteIcon /> }
+    ]
+  }
+]
+
+// Material-UI 主题配置 - 控制台三栏式布局专用
 const theme = createTheme({
   palette: {
-    mode: 'light', // 浅色主题
+    mode: 'light',
     primary: {
       main: '#1976d2', // 蓝色主色调
     },
@@ -32,9 +130,10 @@ const theme = createTheme({
       main: '#d32f2f',
     },
     background: {
-      default: '#fafafa',
+      default: '#f5f5f5', // 稍微深一点的背景色，便于区分区域
       paper: '#ffffff',
     },
+    divider: '#e0e0e0',
   },
   typography: {
     fontFamily: [
@@ -44,35 +143,52 @@ const theme = createTheme({
       'Arial',
       'sans-serif',
     ].join(','),
-    h4: {
-      fontWeight: 600,
-      color: '#1976d2',
-    },
     h6: {
-      fontWeight: 500,
+      fontWeight: 600,
+    },
+    body2: {
+      fontSize: '0.875rem',
     },
   },
   components: {
-    // 自定义组件样式
     MuiAppBar: {
       styleOverrides: {
         root: {
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+          borderBottom: '1px solid #e0e0e0',
         },
       },
     },
-    MuiCard: {
+    MuiDrawer: {
+      styleOverrides: {
+        paper: {
+          borderRight: '1px solid #e0e0e0',
+          boxShadow: 'none',
+        },
+      },
+    },
+    MuiListItemButton: {
       styleOverrides: {
         root: {
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
           borderRadius: 8,
+          margin: '2px 8px',
+          '&.Mui-selected': {
+            backgroundColor: '#e3f2fd',
+            borderLeft: '3px solid #1976d2',
+            '&:hover': {
+              backgroundColor: '#e3f2fd',
+            },
+          },
+          '&:hover': {
+            backgroundColor: '#f5f5f5',
+          },
         },
       },
     },
     MuiButton: {
       styleOverrides: {
         root: {
-          textTransform: 'none', // 保持按钮文字原始大小写
+          textTransform: 'none',
           borderRadius: 6,
         },
       },
@@ -80,286 +196,364 @@ const theme = createTheme({
   },
 })
 
-// 主应用组件
+// 左侧导航栏宽度常量
+const DRAWER_WIDTH = 240
+
+// 主应用组件 - 控制台三栏式布局
 function App() {
+  // 状态管理
+  const [selectedNavItem, setSelectedNavItem] = useState('file-upload') // 当前选中的导航项
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(['file-management']) // 展开的导航组
+  const [mobileOpen, setMobileOpen] = useState(false) // 移动端导航抽屉状态
+  const [rightDrawerOpen, setRightDrawerOpen] = useState(false) // 右侧任务抽屉状态
+  const [isAdvancedMode, setIsAdvancedMode] = useState(false) // 简单/高级模式切换
+  
+  // 目标模式配置状态
+  const [targetModeConfig, setTargetModeConfig] = useState({
+    mode: TargetMode.CONVERSION,
+    outputFormats: ['markdown'],
+    sourceFormats: ['pdf', 'docx', 'pptx', 'xlsx', 'html', 'md', 'txt'],
+    imageExportMode: 'png',
+    // 性能配置
+    device: 'auto',
+    threads: 4,
+    batchSize: 10,
+    // 错误处理
+    continueOnError: true,
+    maxRetries: 3,
+    // 远程功能
+    enableRemote: false,
+    remoteEndpoint: ''
+  })
+
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+
+  // 处理导航组展开/收起
+  const handleGroupToggle = (groupId: string) => {
+    setExpandedGroups(prev => 
+      prev.includes(groupId) 
+        ? prev.filter(id => id !== groupId)
+        : [...prev, groupId]
+    )
+  }
+
+  // 处理导航项选择
+  const handleNavItemSelect = (itemId: string) => {
+    setSelectedNavItem(itemId)
+    if (isMobile) {
+      setMobileOpen(false) // 移动端选择后自动关闭导航
+    }
+  }
+
+  // 处理移动端导航抽屉切换
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen)
+  }
+
+  // 处理右侧任务抽屉切换
+  const handleRightDrawerToggle = () => {
+    setRightDrawerOpen(!rightDrawerOpen)
+  }
+
+  // 渲染导航菜单项
+  const renderNavigationItems = (items: NavigationItem[]) => {
+    return items.map((item) => {
+      if (item.children) {
+        // 有子项的组
+        const isExpanded = expandedGroups.includes(item.id)
+        return (
+          <Box key={item.id}>
+            <ListItemButton onClick={() => handleGroupToggle(item.id)}>
+              <ListItemIcon sx={{ minWidth: 40 }}>
+                {item.icon}
+              </ListItemIcon>
+              <ListItemText 
+                primary={item.label}
+                primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 500 }}
+              />
+              {isExpanded ? <ExpandLess /> : <ExpandMore />}
+            </ListItemButton>
+            <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+              <List component="div" disablePadding>
+                {item.children.map((child) => (
+                  <ListItemButton
+                    key={child.id}
+                    selected={selectedNavItem === child.id}
+                    onClick={() => handleNavItemSelect(child.id)}
+                    sx={{ pl: 4 }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 36 }}>
+                      {child.icon}
+                    </ListItemIcon>
+                    <ListItemText 
+                      primary={child.label}
+                      primaryTypographyProps={{ fontSize: '0.8rem' }}
+                    />
+                  </ListItemButton>
+                ))}
+              </List>
+            </Collapse>
+          </Box>
+        )
+      } else {
+        // 无子项的单独项
+        return (
+          <ListItemButton
+            key={item.id}
+            selected={selectedNavItem === item.id}
+            onClick={() => handleNavItemSelect(item.id)}
+          >
+            <ListItemIcon sx={{ minWidth: 40 }}>
+              {item.icon}
+            </ListItemIcon>
+            <ListItemText 
+              primary={item.label}
+              primaryTypographyProps={{ fontSize: '0.875rem' }}
+            />
+          </ListItemButton>
+        )
+      }
+    })
+  }
+
+  // 渲染主内容区
+  const renderMainContent = () => {
+    switch (selectedNavItem) {
+      case 'file-upload':
+        return (
+          <Box>
+            {/* 模式切换开关 */}
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'flex-end', 
+              p: 2, 
+              borderBottom: '1px solid',
+              borderColor: 'divider'
+            }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={isAdvancedMode}
+                    onChange={(e) => setIsAdvancedMode(e.target.checked)}
+                    size="small"
+                  />
+                }
+                label={isAdvancedMode ? "高级模式" : "简单模式"}
+                sx={{ fontSize: '0.875rem' }}
+              />
+            </Box>
+            {/* 文件上传面板 */}
+            <FileUploadPanel isAdvancedMode={isAdvancedMode} />
+          </Box>
+        )
+
+      case 'target-mode':
+        return (
+          <Box sx={{ p: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h4" gutterBottom>
+                🎯 目标模式配置
+              </Typography>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={isAdvancedMode}
+                    onChange={(e) => setIsAdvancedMode(e.target.checked)}
+                    color="primary"
+                  />
+                }
+                label={isAdvancedMode ? "高级模式" : "简单模式"}
+                sx={{ fontSize: '0.875rem' }}
+              />
+            </Box>
+            {/* 目标模式配置面板 */}
+            <TargetModePanel 
+              isAdvancedMode={isAdvancedMode}
+              config={targetModeConfig}
+              onChange={setTargetModeConfig}
+            />
+          </Box>
+        )
+      
+      default:
+        return (
+          <Box sx={{ p: 3 }}>
+            <Typography variant="h5" gutterBottom>
+              功能开发中
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              当前选中：{navigationItems
+                .flatMap(group => group.children || [group])
+                .find(item => item.id === selectedNavItem)?.label}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+              该功能模块正在开发中，敬请期待。
+            </Typography>
+          </Box>
+        )
+    }
+  }
+
+  // 左侧导航抽屉内容
+  const drawerContent = (
+    <Box>
+      <Toolbar sx={{ 
+        justifyContent: 'center',
+        borderBottom: '1px solid',
+        borderColor: 'divider'
+      }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
+          功能导航
+        </Typography>
+      </Toolbar>
+      <List sx={{ pt: 1 }}>
+        {renderNavigationItems(navigationItems)}
+      </List>
+    </Box>
+  )
+
   return (
     <Provider store={store}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-          {/* 固定顶部导航栏 */}
-          <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+        <Box sx={{ display: 'flex' }}>
+          {/* 顶部应用栏 */}
+          <AppBar 
+            position="fixed" 
+            sx={{ 
+              zIndex: (theme) => theme.zIndex.drawer + 1,
+              height: 64
+            }}
+          >
             <Toolbar>
-              <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+              {/* 移动端汉堡菜单按钮 */}
+              <IconButton
+                color="inherit"
+                aria-label="打开导航菜单"
+                edge="start"
+                onClick={handleDrawerToggle}
+                sx={{ mr: 2, display: { md: 'none' } }}
+              >
+                <MenuIcon />
+              </IconButton>
+              
+              {/* 应用标题 */}
+              <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
                 Docling 文档处理系统
               </Typography>
-              {/* 模式切换开关将在后续模块中添加 */}
+              
+              {/* 右侧任务监控按钮 */}
+              <IconButton
+                color="inherit"
+                aria-label="打开任务监控"
+                onClick={handleRightDrawerToggle}
+                sx={{ mr: 1 }}
+              >
+                <MonitorIcon />
+              </IconButton>
             </Toolbar>
           </AppBar>
-          
-          {/* 主内容区 - 设置 pt 避免被 AppBar 遮挡 */}
+
+          {/* 左侧导航抽屉 */}
+          <Box
+            component="nav"
+            sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}
+          >
+            {/* 移动端临时抽屉 */}
+            <Drawer
+              variant="temporary"
+              open={mobileOpen}
+              onClose={handleDrawerToggle}
+              ModalProps={{ keepMounted: true }}
+              sx={{
+                display: { xs: 'block', md: 'none' },
+                '& .MuiDrawer-paper': { 
+                  boxSizing: 'border-box', 
+                  width: DRAWER_WIDTH 
+                },
+              }}
+            >
+              {drawerContent}
+            </Drawer>
+            
+            {/* 桌面端永久抽屉 */}
+            <Drawer
+              variant="permanent"
+              sx={{
+                display: { xs: 'none', md: 'block' },
+                '& .MuiDrawer-paper': { 
+                  boxSizing: 'border-box', 
+                  width: DRAWER_WIDTH 
+                },
+              }}
+              open
+            >
+              {drawerContent}
+            </Drawer>
+          </Box>
+
+          {/* 主内容区 */}
           <Box
             component="main"
             sx={{
               flexGrow: 1,
-              pt: 8, // AppBar 高度补偿
-              pb: 2,
+              width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
+              mt: 8, // AppBar 高度补偿
               backgroundColor: 'background.default',
+              minHeight: 'calc(100vh - 64px)',
             }}
           >
-            <Container maxWidth="xl" sx={{ mt: 2 }}>
-              {/* 欢迎页面 - 临时内容，后续将替换为实际功能模块 */}
-              <Box
-                sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  minHeight: '60vh',
-                  textAlign: 'center',
-                }}
-              >
-                <Typography variant="h4" gutterBottom>
-                  欢迎使用 Docling 文档处理系统
-                </Typography>
-                <Typography variant="body1" color="text.secondary" sx={{ mb: 4, maxWidth: 600 }}>
-                  这是一个现代化的文档处理平台，支持文档转换、智能分块和信息提取。
-                  项目基础架构已搭建完成，功能模块正在开发中。
-                </Typography>
-                
-                {/* 功能模块卡片 - 优化的响应式布局 */}
-                <Box
-                  sx={{
-                    display: 'grid',
-                    gridTemplateColumns: { 
-                      xs: '1fr',                    // 手机：1列
-                      sm: 'repeat(2, 1fr)',        // 平板：2列
-                      md: 'repeat(2, 1fr)',        // 中等屏幕：2列
-                      lg: 'repeat(4, 1fr)',        // 大屏：4列
-                      xl: 'repeat(4, 1fr)'         // 超大屏：4列
-                    },
-                    gap: { 
-                      xs: 2,                       // 手机：16px间距
-                      sm: 2.5,                     // 平板：20px间距
-                      md: 3,                       // 中等屏幕：24px间距
-                      lg: 3,                       // 大屏：24px间距
-                      xl: 4                        // 超大屏：32px间距
-                    },
-                    width: '100%',
-                    maxWidth: { 
-                      xs: '100%',                  // 手机：全宽
-                      sm: 600,                     // 平板：600px
-                      md: 800,                     // 中等屏幕：800px
-                      lg: 1000,                    // 大屏：1000px
-                      xl: 1200                     // 超大屏：1200px
-                    },
-                    mt: { xs: 3, sm: 4 },
-                    px: { xs: 1, sm: 0 },         // 手机端添加水平内边距
-                  }}
-                >
-                  {[
-                    { 
-                      title: '文件上传管理', 
-                      desc: '支持单文件、多文件、文件夹和URL上传，实时进度显示',
-                      icon: <UploadIcon />,
-                      status: 'doing',
-                      features: ['拖拽上传', '批量处理', '进度跟踪'],
-                      gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                    },
-                    { 
-                      title: '转换配置中心', 
-                      desc: '灵活配置文档转换、智能分块和信息提取参数',
-                      icon: <ConfigIcon />,
-                      status: 'pending',
-                      features: ['多格式转换', '智能分块', '信息提取'],
-                      gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
-                    },
-                    { 
-                      title: '任务执行监控', 
-                      desc: '实时监控处理进度，查看详细日志和任务状态',
-                      icon: <MonitorIcon />,
-                      status: 'pending',
-                      features: ['实时进度', '日志查看', '任务控制'],
-                      gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
-                    },
-                    { 
-                      title: '结果展示下载', 
-                      desc: '在线预览处理结果，支持单个和批量下载',
-                      icon: <ResultIcon />,
-                      status: 'pending',
-                      features: ['在线预览', '批量下载', '格式转换'],
-                      gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)'
-                    },
-                  ].map((item, index) => (
-                    <Card
-                      key={index}
-                      sx={{
-                        position: 'relative',
-                        height: { 
-                          xs: 280,                   // 手机：280px
-                          sm: 300,                   // 平板：300px
-                          md: 320,                   // 中等屏幕：320px
-                          lg: 320,                   // 大屏：320px
-                          xl: 340                    // 超大屏：340px
-                        },
-                        display: 'flex',
-                        flexDirection: 'column',
-                        overflow: 'hidden',
-                        transition: 'all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)',
-                        cursor: 'pointer',
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        borderRadius: { xs: 2, sm: 3 }, // 手机端较小圆角
-                        '&:hover': {
-                          transform: { 
-                            xs: 'translateY(-4px) scale(1.01)',  // 手机端较小的变换
-                            sm: 'translateY(-6px) scale(1.015)', // 平板端中等变换
-                            md: 'translateY(-8px) scale(1.02)'   // 桌面端完整变换
-                          },
-                          boxShadow: {
-                            xs: '0 8px 20px rgba(0,0,0,0.08)',   // 手机端较轻阴影
-                            sm: '0 12px 30px rgba(0,0,0,0.09)',  // 平板端中等阴影
-                            md: '0 20px 40px rgba(0,0,0,0.1)'    // 桌面端完整阴影
-                          },
-                          borderColor: 'primary.main',
-                        },
-                      }}
-                    >
-                      {/* 顶部渐变背景区域 */}
-                      <Box
-                        sx={{
-                          height: 80,
-                          background: item.gradient,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          position: 'relative',
-                          '&::after': {
-                            content: '""',
-                            position: 'absolute',
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            height: 20,
-                            background: 'linear-gradient(to bottom, transparent, rgba(255,255,255,0.8))',
-                          }
-                        }}
-                      >
-                        <Box sx={{ 
-                          color: 'white', 
-                          fontSize: 48,
-                          filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))',
-                          zIndex: 1
-                        }}>
-                          {item.icon}
-                        </Box>
-                        
-                        {/* 状态标签 - 绝对定位在右上角 */}
-                        <Chip 
-                          label={item.status === 'doing' ? '开发中' : '待开发'} 
-                          size="small"
-                          color={item.status === 'doing' ? 'success' : 'default'}
-                          variant="filled"
-                          sx={{ 
-                            position: 'absolute',
-                            top: 12,
-                            right: 12,
-                            zIndex: 2,
-                            fontWeight: 600,
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-                          }}
-                        />
-                      </Box>
-                      
-                      {/* 内容区域 */}
-                      <CardContent sx={{ 
-                        flexGrow: 1, 
-                        p: 3,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 2
-                      }}>
-                        {/* 标题 */}
-                        <Typography 
-                          variant="h6" 
-                          sx={{ 
-                            fontWeight: 700,
-                            color: 'text.primary',
-                            fontSize: '1.1rem',
-                            lineHeight: 1.3
-                          }}
-                        >
-                          {item.title}
-                        </Typography>
-                        
-                        {/* 描述 */}
-                        <Typography 
-                          variant="body2" 
-                          color="text.secondary" 
-                          sx={{ 
-                            lineHeight: 1.6,
-                            fontSize: '0.875rem',
-                            flexGrow: 1
-                          }}
-                        >
-                          {item.desc}
-                        </Typography>
-                        
-                        {/* 功能特性标签 */}
-                        <Box sx={{ 
-                          display: 'flex', 
-                          flexWrap: 'wrap', 
-                          gap: 0.5,
-                          mt: 'auto'
-                        }}>
-                          {item.features.map((feature, idx) => (
-                            <Chip
-                              key={idx}
-                              label={feature}
-                              size="small"
-                              variant="outlined"
-                              sx={{ 
-                                fontSize: '0.7rem',
-                                height: 22,
-                                borderColor: 'primary.main',
-                                color: 'primary.main',
-                                '& .MuiChip-label': { 
-                                  px: 1,
-                                  fontWeight: 500
-                                }
-                              }}
-                            />
-                          ))}
-                        </Box>
-                      </CardContent>
-                      
-                      {/* 底部操作区域 */}
-                      <CardActions sx={{ 
-                        p: 3, 
-                        pt: 0,
-                        justifyContent: 'center'
-                      }}>
-                        <Button 
-                          variant={item.status === 'doing' ? 'contained' : 'outlined'}
-                          disabled={item.status === 'pending'}
-                          startIcon={<DocIcon />}
-                          fullWidth
-                          sx={{ 
-                            borderRadius: 2,
-                            py: 1,
-                            fontWeight: 600,
-                            textTransform: 'none'
-                          }}
-                        >
-                          {item.status === 'doing' ? '查看进度' : '即将开放'}
-                        </Button>
-                      </CardActions>
-                    </Card>
-                  ))}
-                </Box>
-              </Box>
-            </Container>
+            {renderMainContent()}
           </Box>
+
+          {/* 右侧任务抽屉 */}
+          <Drawer
+            anchor="right"
+            open={rightDrawerOpen}
+            onClose={handleRightDrawerToggle}
+            variant={isMobile ? "temporary" : "persistent"}
+            sx={{
+              '& .MuiDrawer-paper': {
+                width: isMobile ? '100vw' : 320,
+                mt: 8, // AppBar 高度补偿
+                height: 'calc(100vh - 64px)',
+                borderLeft: '1px solid',
+                borderColor: 'divider',
+              },
+            }}
+          >
+            <Box sx={{ p: 2 }}>
+              {/* 抽屉标题栏 */}
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between',
+                mb: 2
+              }}>
+                <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <MonitorIcon />
+                  任务监控
+                </Typography>
+                <IconButton onClick={handleRightDrawerToggle} size="small">
+                  <CloseIcon />
+                </IconButton>
+              </Box>
+              
+              <Divider sx={{ mb: 2 }} />
+              
+              {/* 任务监控内容 */}
+              <Typography variant="body2" color="text.secondary">
+                暂无运行中的任务
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                • 后端连接状态：🟢 正常
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                • SSE连接状态：🟡 未连接
+              </Typography>
+            </Box>
+          </Drawer>
         </Box>
       </ThemeProvider>
     </Provider>

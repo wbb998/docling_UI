@@ -33,7 +33,7 @@
 
 ## Design
 
-已确定采用方案A - 控制台三栏式布局：左侧功能导航栏(200px)、中央主工作区(flex-grow)、右侧任务抽屉(300px可滑出)。响应式设计：移动端左侧导航收起为汉堡菜单，右侧抽屉全屏覆盖。严格贴合功能清单与业务流程图，内置参数校验与SSE/轮询兜底。
+已确定采用方案A - 控制台三栏式布局：左侧功能导航栏(240px)、中央主工作区(flex-grow)、右侧任务抽屉(320px可滑出)。响应式设计：移动端左侧导航收起为汉堡菜单，右侧抽屉全屏覆盖。严格贴合功能清单与业务流程图，内置参数校验与SSE/轮询兜底。
 
 ## Plan
 
@@ -49,15 +49,15 @@ Note:
 
 [X] 界面布局与交互多方案输出（A/B/C/D）
 
-[/] 确定布局方案A并制定详细交互原型
+[X] 确定布局方案A并制定详细交互原型
 
 [X] 项目初始化和基础架构搭建（Vite+TS+MUI+RTK+Axios，Windows脚本：kill-port/start-dev，.editorconfig/.gitattributes）
 
-[/] 模块1：文件上传与队列（单/多/文件夹/URL、进度、移除、大小/类型校验）
+[X] 模块1：文件上传与队列（单/多/文件夹/URL、进度、移除、大小/类型校验）+ 增强功能（批量操作、预览、重命名、统计）
 
-[ ] 模块2：目标模式与通用配置（Conversion/Chunking/Extraction互斥，output/from_formats/image_export_mode、性能/错误处理/远程开关）
+[X] 模块2：目标模式与通用配置（Conversion/Chunking/Extraction互斥，output/from_formats/image_export_mode、性能/错误处理/远程开关）
 
-[ ] 模块3：流水线配置（STANDARD：OCR/增强；VLM：本地/远程；ASR：模型选择）
+[/] 模块3：流水线配置（STANDARD：OCR/增强；VLM：本地/远程；ASR：模型选择）
 
 [ ] 模块4：附加功能（图片描述：本地/远程需enable_remote；产物导出：CSV/HTML/PNG/Parquet；后处理：翻译）
 
