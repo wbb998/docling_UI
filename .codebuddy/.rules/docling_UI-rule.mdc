@@ -1,33 +1,38 @@
 ---
 description: 
 globs:
-alwaysApply: false
+alwaysApply: true
 ---
 # docling_UI-rule
 
 这是一个规则文件，用于帮助 AI 理解您的代码库和遵循项目约定。
 
-# 项目文件系统结构设计
+# 项目文件系统结构设计（修订版）
 
-本设计旨在为 Docling UI 项目提供一个可扩展、易维护、便于与开源 docling 后端解耦升级的目录结构。目标：
+本设计为 Docling UI 项目提供可扩展、易维护、与开源 docling 后端解耦升级的目录结构方案，兼顾当前仓库现状（已存在 docling/、docs/、tests/、pyproject.toml、uv.lock、mkdocs.yml 等）与未来升级便利性。
+
+目标：
 - 清晰划分核心业务模块与支撑模块
-- 独立第三方依赖与对接适配层，降低升级成本
-- 完整沉淀文档资源与版本控制策略
-- 保持与 docling 后端的标准化对接接口，未来可平滑升级
+- 以“适配层 + 契约”为核心，与 docling 解耦，降低升级成本
+- 完整沉淀文档资源与版本控制策略（不打破既有 docs/ 与 mkdocs）
+- 保持与 docling 的标准化对接接口，未来可平滑升级
+- Windows 中文环境友好、端口强制释放（kill-port）内置
 
 适用环境：Windows 10/11（PowerShell 7），UTF-8 编码，中文友好。
 
 ---
 
-## 1. 顶层目录结构
+## 1. 顶层目录结构（建议）
+
+说明：以下为“新增/增量”结构，与现有 docling/、docs/、tests/ 共存；不对上游源码与既有文档目录做侵入式改动。
 
 ```text
 docling_UI/
 ├─ apps/                              # 前端/客户端应用层（面向用户）
 │  ├─ web/                            # Web 前端 (React/Vue 任一)
-│  │  ├─ src/                         # 前端源代码
-│  │  │  ├─ modules/                  # 业务模块（与功能清单一致：转换/分块/提取/图片描述/产物导出 等）
-│  │  │  ├─ components/               # 通用 UI 组件（表单、进度、预览、日志等）
+│  │  ├─ src/
+│  │  │  ├─ modules/                  # 业务模块（与功能清单一致：转换/分块/提取/图片描述/产物导出等）
+│  │  │  ├─ components/               # 通用组件（表单、进度、预览、日志等）
 │  │  │  ├─ pages/                    # 路由页面（简单模式/高级模式/结果页/任务详情）
 │  │  │  ├─ services/                 # 前端 API 客户端（与 /services/api-gateway 的 OpenAPI 同步）
 │  │  │  ├─ store/                    # 全局状态（配置项、队列、任务状态）
@@ -36,69 +41,69 @@ docling_UI/
 │  │  │  └─ types/                    # TS 类型（与 API 契约/Schema 对齐）
 │  │  ├─ public/
 │  │  ├─ scripts/                     # 开发与调试脚本（Windows）
-│  │  │  ├─ kill-port.ps1             # 启动前强制释放端口（满足“先 kill-port 再起服”）
-│  │  │  ├─ start-dev.ps1             # 调用 kill-port 后再启动 dev 服务器
+│  │  │  ├─ kill-port.ps1             # 启动前强制释放端口（先 kill 再起服）
+│  │  │  ├─ start-dev.ps1             # 调用 kill-port 后启动 dev
 │  │  │  └─ build-release.ps1         # 打包构建（含产物清理）
 │  │  ├─ .editorconfig                # 统一编码/行尾（utf-8 + crlf）
 │  │  ├─ .gitattributes               # 文本规范（text=auto eol=crlf）
 │  │  ├─ package.json                 # 前端依赖与脚本（锁版本）
 │  │  └─ pnpm-lock.yaml               # 依赖锁定（建议 pnpm）
-│  └─ desktop/                        # 可选：桌面应用 (Tauri/Electron) 的 UI 容器
-│     └─ ...
+│  └─ desktop/                        # 可选：桌面应用 (Tauri/Electron) 容器
 │
 ├─ services/                          # 轻服务/网关层（与 docling 解耦）
-│  ├─ api-gateway/                    # 单一端点 /convert，组合式参数实现全部能力
-│  │  ├─ src/
-│  │  │  ├─ adapters/                 # 适配层：对接 docling（关键）
-│  │  │  │  └─ docling/
-│  │  │  │     ├─ cli-adapter.ts      # 通过 CLI 调用 docling（spawn/管道/退出码转换）
-│  │  │  │     ├─ sdk-adapter.ts      # 通过 Python SDK/HTTP 桥接（可选方案）
-│  │  │  │     ├─ mappers/            # 参数映射（UI→API→docling CLI/SDK）
-│  │  │  │     │  ├─ convert.mapper.ts
-│  │  │  │     │  ├─ chunking.mapper.ts
-│  │  │  │     │  └─ extraction.mapper.ts
-│  │  │  │     ├─ VERSION             # 已验证的 docling 版本号（如 0.14.x）
-│  │  │  │     └─ feature-matrix.json # 版本-特性矩阵（用于动态显隐与兼容检测）
-│  │  │  ├─ controllers/
-│  │  │  │  └─ convert.controller.ts  # 校验请求→调用 service→返回统一响应
-│  │  │  ├─ services/
-│  │  │  │  ├─ convert.service.ts     # 组合参数→调用 adapter→汇总结果/错误
-│  │  │  │  └─ jobs.service.ts        # 异步任务/job_id 状态管理（内存/Redis/SQLite 均可）
-│  │  │  ├─ middlewares/              # 日志/TraceId/幂等键/错误中文化
-│  │  │  ├─ schemas/                  # 请求/响应 JSON Schema（与前端 types 对齐）
-│  │  │  │  ├─ convert.request.schema.json
-│  │  │  │  └─ error.schema.json
-│  │  │  ├─ routes/
-│  │  │  │  └─ index.ts               # /convert, /jobs/:id/status, /jobs/:id/result, /jobs/:id/events
-│  │  │  ├─ utils/                     # 进程/超时/临时目录/安全（URL 校验、脱敏）
-│  │  │  └─ index.ts                   # 应用入口（读取 configs/，注册路由/中间件）
-│  │  ├─ openapi/
-│  │  │  └─ convert.yml                # 与《后端API接口文档.md》保持一致的契约源文件
-│  │  ├─ configs/                      # 网关运行配置（按环境分层）
-│  │  │  ├─ default.json
-│  │  │  ├─ dev.json
-│  │  │  └─ prod.json
-│  │  ├─ .env.example                  # 环境变量模板（不含敏感信息）
-│  │  ├─ package.json / pyproject.toml # 网关实现语言自选（Node 或 Python）
-│  │  └─ lockfile                      # 锁版本（npm/pnpm/poetry/pip-tools）
-│  └─ workers/                         # 队列/长任务处理（大文件/批处理）
-│     └─ ...
+│  ├─ api-gateway/
+│  │  ├─ py/                          # 推荐默认：Python 网关（与 pyproject.toml/uv.lock 对齐）
+│  │  │  ├─ src/
+│  │  │  │  ├─ adapters/              # 适配层：对接 docling（关键）
+│  │  │  │  │  └─ docling/
+│  │  │  │  │     ├─ cli_adapter.py   # 通过 CLI 调用 docling（spawn/管道/退出码）
+│  │  │  │  │     ├─ sdk_adapter.py   # 通过 Python SDK/HTTP 桥接（可选）
+│  │  │  │  │     ├─ mappers/         # 参数映射（UI→API→docling CLI/SDK）
+│  │  │  │  │     │  ├─ convert_mapper.py
+│  │  │  │  │     │  ├─ chunking_mapper.py
+│  │  │  │  │     │  └─ extraction_mapper.py
+│  │  │  │  │     ├─ VERSION          # 已验证的 docling 版本号（如 0.14.x）
+│  │  │  │  │     └─ feature_matrix.json # 版本-特性矩阵（动态显隐与兼容检测）
+│  │  │  │  ├─ controllers/
+│  │  │  │  │  └─ convert_controller.py
+│  │  │  │  ├─ services/
+│  │  │  │  │  ├─ convert_service.py  # 组合参数→调用 adapter→汇总结果/错误
+│  │  │  │  │  └─ jobs_service.py     # 异步任务 job_id 状态（内存/Redis/SQLite）
+│  │  │  │  ├─ middlewares/           # 日志/TraceId/幂等键/错误中文化
+│  │  │  │  ├─ schemas/               # 请求/响应 JSON Schema（与前端 types 对齐）
+│  │  │  │  │  ├─ convert.request.schema.json
+│  │  │  │  │  └─ error.schema.json
+│  │  │  │  ├─ routes/
+│  │  │  │  │  └─ index.py            # /convert, /jobs/:id/status, /jobs/:id/result, /jobs/:id/events
+│  │  │  │  ├─ utils/                 # 进程/超时/临时目录/安全（URL 校验、脱敏）
+│  │  │  │  └─ main.py                # 应用入口（读取 configs/，注册路由/中间件）
+│  │  │  ├─ openapi/
+│  │  │  │  └─ convert.yml            # 与《后端API接口文档.md》保持一致的契约源
+│  │  │  ├─ configs/                  # 网关运行配置（按环境分层）
+│  │  │  │  ├─ default.json
+│  │  │  │  ├─ dev.json
+│  │  │  │  └─ prod.json
+│  │  │  ├─ .env.example              # 环境变量模板（不含敏感信息）
+│  │  │  ├─ pyproject.toml
+│  │  │  └─ uv.lock
+│  │  └─ node/                        # 可选：Node 实现（如 Express/Fastify）
+│  │     ├─ src/...
+│  │     ├─ openapi/convert.yml
+│  │     ├─ package.json
+│  │     └─ pnpm-lock.yaml
+│  └─ workers/                         # 队列/长任务（大文件/批处理）
 │
-├─ integrations/                      # 第三方对接与版本管理（升级友好）
+├─ integrations/                       # 第三方对接与版本管理（升级友好）
 │  ├─ docling/
-│  │  ├─ manifest.json                # 固定 docling 版本 & 能力描述（与 adapters/feature-matrix 对齐）
-│  │  ├─ constraints.txt              # Python 依赖约束（pip-tools/constraints）
-│  │  ├─ upgrade-playbook.md          # 升级手册（检查点、测试集、回滚点）
-│  │  └─ changelog-tracker.md         # 跟踪上游变更点→映射到本项目影响
-│  ├─ vlm_providers/                  # LM Studio/Ollama/watsonx 等远程 VLM 预设配置
-│  │  ├─ lm-studio.json
-│  │  ├─ ollama.json
-│  │  └─ watsonx.json
-│  └─ asr_providers/                  # 可选：ASR/音视频引擎预设
-│     └─ ...
+│  │  ├─ manifest.json                 # 固定 docling 版本 & 能力（与 feature_matrix 对齐）
+│  │  ├─ constraints.txt               # Python 依赖约束（pip-tools/constraints）
+│  │  ├─ upgrade-playbook.md           # 升级手册（检查点、测试集、回滚点）
+│  │  └─ changelog-tracker.md          # 跟踪上游变更点→映射本项目影响
+│  ├─ vlm_providers/                   # 远程 VLM 预设（LM Studio/Ollama/watsonx 等）
+│  └─ asr_providers/                   # 可选：ASR 引擎预设
 │
-├─ configs/                           # 全局配置中心（前后端共享原则/Schema）
-│  ├─ schema/                         # JSON Schema（驱动前端表单 & 网关校验）
+├─ configs/                            # 全局配置中心（前后端共享原则/Schema）
+│  ├─ schema/                          # JSON Schema（驱动前端表单 & 网关校验）
 │  │  ├─ app.schema.json
 │  │  └─ security.schema.json
 │  ├─ default/
@@ -106,43 +111,43 @@ docling_UI/
 │  │  └─ security.json
 │  ├─ dev/
 │  ├─ prod/
-│  └─ secrets/                        # 机密（被 .gitignore，使用 .env.* 方式注入）
+│  └─ secrets/                         # 机密（被 .gitignore，使用 .env.* 注入）
 │
-├─ storage/                           # 可写目录（上传/输出/产物）
+├─ storage/                            # 可写目录（上传/输出/产物）
 │  ├─ uploads/
 │  ├─ outputs/
 │  └─ artifacts/
 │
-├─ docs/                              # 文档与资源（版本化/面向团队）
-│  ├─ functional/                     # 功能文档（功能清单.md 等）
-│  ├─ requirements/                   # 需求文档（项目需求文档.md）
-│  ├─ flows/                          # 业务流程（业务流程图.md）
-│  ├─ api/                            # API 文档（后端API接口文档.md & OpenAPI 导出）
-│  ├─ examples/                       # 示例用例与期望结果（覆盖 Minimal/Custom/Batch/Formats/Serialization/Extraction/Picture）
+├─ docs/                               # 文档与资源（沿用现有 docs/；新增分区可渐进迁移）
+│  ├─ functional/                      # 功能文档（功能清单.md 等）
+│  ├─ requirements/                    # 需求文档（项目需求文档.md）
+│  ├─ flows/                           # 业务流程（业务流程图.md）
+│  ├─ api/                             # API 文档（后端API接口文档.md & OpenAPI 导出）
+│  ├─ examples/                        # 示例与期望结果（Minimal/Custom/Batch/Formats/Serialization/Extraction/Picture）
 │  ├─ maintenance/
-│  │  ├─ docling-upgrade.md           # 与 integrations/docling 对应的操作指南
-│  │  └─ versioning-policy.md         # 版本规范（SemVer/锁版本策略/回滚流程）
+│  │  ├─ docling-upgrade.md            # 与 integrations/docling 对应的操作指南
+│  │  └─ versioning-policy.md          # 版本规范（SemVer/锁版本策略/回滚流程）
 │  └─ README.md
 │
-├─ test/                              # 测试（保证升级不破坏能力）
+├─ tests/                              # 复用现有 tests/ 目录，细分子目录
 │  ├─ unit/
 │  ├─ integration/
-│  │  ├─ adapters.docling.spec.ts     # 适配层关键映射的集成测试
-│  │  └─ api.convert.spec.ts          # /convert 全参组合/冲突用例
+│  │  ├─ adapters.docling.spec.py      # 适配层关键映射的集成测试
+│  │  └─ api.convert.spec.py           # /convert 全参组合/冲突用例
 │  └─ e2e/
-│     └─ scenarios/                   # 覆盖四大示例维度与边界条件
+│     └─ scenarios/                    # 覆盖四类示例与边界条件
 │
-├─ scripts/                           # 通用脚本（CI/运维/Windows 适配）
+├─ scripts/                            # 通用脚本（CI/运维/Windows 适配）
 │  ├─ win/
-│  │  ├─ kill-port.ps1                # 强制释放端口（严格在 dev 前执行）
-│  │  ├─ verify-docling-compat.ps1    # 拉取 manifest，跑回归样例验证
-│  │  └─ export-artifacts.ps1         # 统一导出产物（CSV/HTML/PNG/Parquet）
+│  │  ├─ kill-port.ps1                 # 强制释放端口（严格在 dev 前执行）
+│  │  ├─ verify-docling-compat.ps1     # 读取 pyproject/uv.lock → 生成 manifest & 回归样例验证
+│  │  └─ export-artifacts.ps1          # 统一导出产物（CSV/HTML/PNG/Parquet）
 │  └─ ci/
 │     ├─ run-unit.ps1
 │     ├─ run-integration.ps1
 │     └─ run-e2e.ps1
 │
-├─ .vscode/                           # 开发环境建议（确保中文/UTF-8/CRLF）
+├─ .vscode/                            # 开发环境建议（中文/UTF-8/CRLF）
 │  ├─ settings.json
 │  └─ tasks.json
 │
