@@ -1,34 +1,39 @@
-# Docling 后端 API 接口文档 (最终版)
+# Docling 后端 API 接口文档 (V1.1)
 
-本文档为 Docling 前端开发团队提供后端 API 的最终参考。API 设计的核心是灵活性，允许通过单个 `/convert` 端点自由组合各种功能。
+**版本更新说明 (2025/09/09):**
+- **接口状态**: 明确所有核心接口均已实现并通过测试。
+- **SSE事件流**: 补充说明当前SSE端点为功能演示的简化实现，用于实时反馈，实际生产中可进一步增强。
+- **参数与错误码**: 与`功能清单.md`对齐，确认所有新增参数已包含在内，并更新了错误码的实现状态。
 
-## 📋 实现状态更新 (2025/9/7)
+---
+
+## 📋 实现状态更新 (2025/09/09)
 
 **已实现的接口：**
 - ✅ `POST /api/convert` - 任务创建接口（JSON格式，参数校验）
 - ✅ `GET /api/jobs/{job_id}/status` - 任务状态查询
 - ✅ `GET /api/jobs/{job_id}/result` - 任务结果获取
-- ✅ `GET /api/jobs/{job_id}/events` - SSE事件流端点（简化实现）
+- ✅ `GET /api/jobs/{job_id}/events` - SSE事件流端点（**说明**: 当前为简化实现，用于演示实时进度，可按需增强）
 - ✅ `GET /healthz` - 健康检查端点
 
 **参数校验已实现：**
 - ✅ 必须参数校验（input_sources）
-- ✅ 参数冲突校验（extraction_schema/chunking_strategy 与 to_formats）
+- ✅ 参数组合冲突校验（extraction_schema/chunking_strategy 与 to_formats）
 - ✅ 远程服务依赖校验（enable_remote_services）
 - ✅ 中文错误提示
 
 **前后端联调状态：**
 - ✅ API代理配置（前端5173 → 后端8000）
-- ✅ 任务创建与状态轮询正常
+- ✅ 任务创建与状态轮询/SSE事件流正常
 - ✅ 错误码中文化映射
-- ✅ DOM嵌套问题修复
-- ✅ JavaScript错误修复
+- ✅ 前端渲染与状态同步问题已修复
 
 **当前运行状态：**
 - 后端API服务器：http://localhost:8000 ✅ 运行中
 - 前端开发服务器：http://localhost:5173 ✅ 运行中
 - API文档：http://localhost:8000/docs ✅ 可访问
-=======
+
+---
 
 ## 1. 核心端点
 
@@ -99,7 +104,7 @@
 | `abort_on_error`| `boolean` | 否 | 遇到错误时是否立即中止。默认为 `false`。 |
 | `document_timeout`| `number` | 否 | 处理单个文档的超时时间（秒）。 |
 
-### 3.6 扩展参数（新增）
+### 3.6 扩展参数
 
 | 参数名 | 类型 | 必须 | 描述 |
 | :--- | :--- | :--- | :--- |
@@ -301,13 +306,13 @@ API响应将包含任务的状态和结果。
 
 ---
 
-## 7. 参数约束（新增）
+## 7. 参数约束
 
 - 当 `extraction_schema` 或 `chunking_strategy` 存在时：输出强制为 `JSON`；若同时传入 `to_formats`，服务端返回 400 错误（`E001_INVALID_INPUT`）。
 - 当 `picture_description_options.type=remote` 且 `enable_remote_services` 不为 `true` 时：返回 400（`E001_INVALID_INPUT`）。
 - `image_export_mode` 仅对富文本输出（Markdown/HTML）生效；仅 JSON 输出且未选择 `pages_png/pictures_png` 产物导出时，该设置对结果无可见影响。
 
-## 8. 错误码与错误响应结构（新增）
+## 8. 错误码与错误响应结构
 
 ### 8.1 统一错误结构
 ```json
@@ -339,7 +344,7 @@ API响应将包含任务的状态和结果。
 - ✅ 日志与第三方错误信息放入 `details`
 - ✅ 敏感信息脱敏处理
 
-## 9. 异步任务接口（可选增强）
+## 9. 异步任务接口
 
 - `POST /convert` → `{ job_id }`
 - `GET /jobs/{id}/status` → `{ progress, current_file, state }`
@@ -347,7 +352,7 @@ API响应将包含任务的状态和结果。
 - `SSE /jobs/{id}/events` → 实时日志/进度事件流
 - 建议前端请求头包含：`X-Request-Id`、`Idempotency-Key`，后端支持幂等重试。
 
-## 10. 命名统一说明（新增）
+## 10. 命名统一说明
 
 - “HTML 分页”参数标准命名：`to_html_split_pages`（与前端/配置一致）。如需在说明中展示格式名与参数名差异，请明确映射关系。
 - `to_formats` 的值统一使用小写：`markdown/html/json/yaml/text/doctags`。
