@@ -73,4 +73,4 @@ Note:
 
 [X] 四类示例回归测试（Minimal/Custom/Chunking/Extraction/Picture）
 
-[/] 文档与交付：使用手册、问题排查、脚本说明、版本与兼容声明
+[X] 文档与交付：使用手册、问题排查、脚本说明、版本与兼容声明

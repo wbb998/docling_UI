@@ -499,11 +499,38 @@ export const ExecutionControlPanel: React.FC<ExecutionControlPanelProps> = ({
             case 'progress':
               setTaskInfo(prev => ({ ...prev, progress: data.progress || 0 }))
               break
+            case 'status':
+              setTaskInfo(prev => ({ ...prev, status: data.status || TaskStatus.RUNNING }))
+              break
+            case 'log':
+              // 添加日志到事件列表
+              console.log('SSE日志:', data.message)
+              break
+            case 'complete':
+              setTaskInfo(prev => ({ 
+                ...prev, 
+                status: data.status === 'completed' ? TaskStatus.COMPLETED : TaskStatus.FAILED,
+                progress: 100,
+                endTime: new Date()
+              }))
+              if (data.status === 'completed') {
+                setTaskCompleteDialog(true)
+              }
+              break
+            case 'error':
+              setTaskInfo(prev => ({ 
+                ...prev, 
+                status: TaskStatus.FAILED,
+                endTime: new Date(),
+                errorMessage: data.message
+              }))
+              showNotification(`任务执行失败: ${data.message}`, 'error')
+              break
             case 'file_start':
-              setTaskInfo(prev => ({ ...prev, currentFile: data.data.filename }))
+              setTaskInfo(prev => ({ ...prev, currentFile: data.data?.filename }))
               setFileProcessList(prev => 
                 prev.map(file => 
-                  file.filename === data.data.filename 
+                  file.filename === data.data?.filename 
                     ? { ...file, status: FileStatus.PROCESSING, startTime: new Date() }
                     : file
                 )
@@ -512,14 +539,14 @@ export const ExecutionControlPanel: React.FC<ExecutionControlPanelProps> = ({
             case 'file_complete':
               setFileProcessList(prev => 
                 prev.map(file => 
-                  file.filename === data.data.filename 
+                  file.filename === data.data?.filename 
                     ? { 
                         ...file, 
                         status: FileStatus.COMPLETED, 
                         endTime: new Date(),
                         progress: 100,
-                        outputPath: data.data.output_path,
-                        processingTime: data.data.processing_time
+                        outputPath: data.data?.output_path,
+                        processingTime: data.data?.processing_time
                       }
                     : file
                 )
@@ -528,12 +555,12 @@ export const ExecutionControlPanel: React.FC<ExecutionControlPanelProps> = ({
             case 'file_error':
               setFileProcessList(prev => 
                 prev.map(file => 
-                  file.filename === data.data.filename 
+                  file.filename === data.data?.filename 
                     ? { 
                         ...file, 
                         status: FileStatus.FAILED, 
                         endTime: new Date(),
-                        errorMessage: data.data.error_message
+                        errorMessage: data.data?.error_message
                       }
                     : file
                 )
@@ -563,9 +590,44 @@ export const ExecutionControlPanel: React.FC<ExecutionControlPanelProps> = ({
       }
 
       eventSource.onerror = (error) => {
-        console.error('SSE连接错误:', error)
+        console.error('SSE连接错误详情:', {
+          readyState: eventSource.readyState,
+          readyStateText: eventSource.readyState === 0 ? 'CONNECTING' : 
+                         eventSource.readyState === 1 ? 'OPEN' : 
+                         eventSource.readyState === 2 ? 'CLOSED' : 'UNKNOWN',
+          url: eventSource.url,
+          errorType: error.type,
+          errorTarget: error.target,
+          timestamp: new Date().toISOString()
+        })
+        
         setSseConnected(false)
-        eventSource.close()
+        
+        // 检查连接状态并提供更详细的错误信息
+        if (eventSource.readyState === EventSource.CONNECTING) {
+          console.log('SSE正在重新连接...')
+          // 不显示通知，避免频繁提示
+        } else if (eventSource.readyState === EventSource.CLOSED) {
+          console.log('SSE连接已关闭，启动轮询备用方案')
+          showNotification('实时连接已断开，已切换到轮询模式', 'info')
+          eventSource.close()
+          
+          // 启动轮询作为备用方案
+          if (refreshTimerRef.current) {
+            clearInterval(refreshTimerRef.current)
+          }
+          refreshTimerRef.current = setInterval(() => {
+            fetchTaskStatus(jobId)
+          }, 2000) // 每2秒轮询一次
+        } else {
+          console.log('SSE连接状态未知，尝试重新连接')
+          // 对于未知状态，尝试重新连接
+          setTimeout(() => {
+            if (taskInfo.status === TaskStatus.RUNNING || taskInfo.status === TaskStatus.PREPARING) {
+              connectSSE(jobId)
+            }
+          }, 3000)
+        }
       }
 
       sseRef.current = eventSource
@@ -894,14 +956,15 @@ export const ExecutionControlPanel: React.FC<ExecutionControlPanelProps> = ({
                   </ListItemIcon>
                   <ListItemText
                     primary={file.filename}
+                    secondaryTypographyProps={{ component: 'div' }}
                     secondary={
                       <Box>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                          <Typography variant="caption" color="text.secondary">
+                          <Box component="span" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
                             大小: {formatFileSize(file.size)}
                             {file.processingTime && ` | 处理时间: ${formatTime(file.processingTime)}`}
                             {file.outputPath && ` | 输出: ${file.outputPath}`}
-                          </Typography>
+                          </Box>
                           <Chip 
                             label={file.status ? file.status.toUpperCase() : 'UNKNOWN'} 
                             size="small" 
@@ -921,9 +984,9 @@ export const ExecutionControlPanel: React.FC<ExecutionControlPanelProps> = ({
                           />
                         )}
                         {file.errorMessage && (
-                          <Typography variant="caption" color="error.main" sx={{ display: 'block', mt: 1 }}>
+                          <Box component="span" sx={{ display: 'block', mt: 1, fontSize: '0.75rem', color: 'error.main' }}>
                             错误: {file.errorMessage}
-                          </Typography>
+                          </Box>
                         )}
                       </Box>
                     }
@@ -944,9 +1007,12 @@ export const ExecutionControlPanel: React.FC<ExecutionControlPanelProps> = ({
       {showLogs && (
         <Card sx={{ mb: 3, mx: 0, borderRadius: 2, boxShadow: 1 }}>
           <CardContent sx={{ px: 3, py: 2, '&:last-child': { pb: 2 } }}>
-            <Typography variant="h6" gutterBottom>
-              📋 实时日志 {sseConnected && <Chip label="已连接" size="small" color="success" />}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+              <Typography variant="h6" component="span">
+                📋 实时日志
+              </Typography>
+              {sseConnected && <Chip label="已连接" size="small" color="success" />}
+            </Box>
             <Box sx={{ 
               maxHeight: 300, 
               overflowY: 'auto', 
