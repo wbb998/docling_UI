@@ -297,21 +297,16 @@ export const ExecutionControlPanel: React.FC<ExecutionControlPanelProps> = ({
         return
       }
 
-      // 构建FormData
-      const formData = new FormData()
-      
-      // 添加文件
-      files.forEach(file => {
-        formData.append('files', file)
-      })
-
-      // 添加配置参数
+      // 构建请求参数（使用JSON格式，符合后端API文档规范）
       const params = buildRequestParams()
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          formData.append(key, String(value))
-        }
-      })
+      
+      // 添加输入源（模拟文件路径，实际应用中需要先上传文件获取路径）
+      const input_sources = files.map(file => file.name)
+      
+      const requestBody = {
+        input_sources,
+        ...params
+      }
 
       // 更新状态为准备中
       setTaskInfo(prev => ({
@@ -325,19 +320,29 @@ export const ExecutionControlPanel: React.FC<ExecutionControlPanelProps> = ({
         warnings: []
       }))
 
-      // 发送请求
+      // 发送请求（使用JSON格式）
       const response = await fetch('/api/convert', {
         method: 'POST',
-        body: formData
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || `HTTP ${response.status}`)
+        let errorMessage = `HTTP ${response.status}`
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.message || errorMessage
+        } catch (jsonError) {
+          // 如果响应不是JSON格式，使用默认错误消息
+          console.warn('响应不是有效的JSON格式:', jsonError)
+        }
+        throw new Error(errorMessage)
       }
 
       const result = await response.json()
-      const jobId = result.job_id
+      const jobId = result.job_id || result.jobId
 
       // 更新任务信息
       setTaskInfo(prev => ({
@@ -492,7 +497,7 @@ export const ExecutionControlPanel: React.FC<ExecutionControlPanelProps> = ({
           // 处理不同类型的事件
           switch (data.type) {
             case 'progress':
-              setTaskInfo(prev => ({ ...prev, progress: data.data.progress }))
+              setTaskInfo(prev => ({ ...prev, progress: data.progress || 0 }))
               break
             case 'file_start':
               setTaskInfo(prev => ({ ...prev, currentFile: data.data.filename }))
@@ -683,7 +688,7 @@ export const ExecutionControlPanel: React.FC<ExecutionControlPanelProps> = ({
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Chip
                   icon={getStatusIcon(taskInfo.status)}
-                  label={taskInfo.status.toUpperCase()}
+                  label={taskInfo.status ? taskInfo.status.toUpperCase() : 'UNKNOWN'}
                   color={getStatusColor(taskInfo.status)}
                   variant="filled"
                 />
@@ -888,30 +893,26 @@ export const ExecutionControlPanel: React.FC<ExecutionControlPanelProps> = ({
                     {file.status === FileStatus.SKIPPED && <WarningIcon color="warning" />}
                   </ListItemIcon>
                   <ListItemText
-                    primary={
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          {file.filename}
-                        </Typography>
-                        <Chip 
-                          label={file.status.toUpperCase()} 
-                          size="small" 
-                          color={
-                            file.status === FileStatus.COMPLETED ? 'success' :
-                            file.status === FileStatus.FAILED ? 'error' :
-                            file.status === FileStatus.PROCESSING ? 'primary' :
-                            file.status === FileStatus.SKIPPED ? 'warning' : 'default'
-                          }
-                        />
-                      </Box>
-                    }
+                    primary={file.filename}
                     secondary={
                       <Box>
-                        <Typography variant="caption" color="text.secondary">
-                          大小: {formatFileSize(file.size)}
-                          {file.processingTime && ` | 处理时间: ${formatTime(file.processingTime)}`}
-                          {file.outputPath && ` | 输出: ${file.outputPath}`}
-                        </Typography>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                          <Typography variant="caption" color="text.secondary">
+                            大小: {formatFileSize(file.size)}
+                            {file.processingTime && ` | 处理时间: ${formatTime(file.processingTime)}`}
+                            {file.outputPath && ` | 输出: ${file.outputPath}`}
+                          </Typography>
+                          <Chip 
+                            label={file.status ? file.status.toUpperCase() : 'UNKNOWN'} 
+                            size="small" 
+                            color={
+                              file.status === FileStatus.COMPLETED ? 'success' :
+                              file.status === FileStatus.FAILED ? 'error' :
+                              file.status === FileStatus.PROCESSING ? 'primary' :
+                              file.status === FileStatus.SKIPPED ? 'warning' : 'default'
+                            }
+                          />
+                        </Box>
                         {file.status === FileStatus.PROCESSING && (
                           <LinearProgress 
                             variant="determinate" 

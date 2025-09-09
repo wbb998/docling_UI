@@ -63,10 +63,14 @@ Note:
 
 [X] 模块5：任务执行与可观测性（POST /convert，job_id 轮询/SSE，进度/日志，取消）
 
-[/] 模块6：结果预览与下载（MD/HTML/JSON 预览、单个/打包下载、错误报告中文提示）
+[X] 模块6：结果预览与下载（MD/HTML/JSON 预览、单个/打包下载、错误报告中文提示）
 
-[ ] 模块7：动态校验与可见性规则（冲突：extraction/chunking→锁定JSON、to_formats冲突400；image_export_mode可见性提示；远程前置依赖）
+[X] 模块7：动态校验与可见性规则（冲突：extraction/chunking→锁定JSON、to_formats冲突400；image_export_mode可见性提示；远程前置依赖）
 
-[ ] 联调与验收：对齐openapi/convert.yml、错误码映射、四类示例回归（Minimal/Custom/Chunking/Extraction/Picture）
+[X] 前后端基础连通与错误修复（API代理、DOM嵌套、JavaScript错误、SSE连接）
 
-[ ] 文档与交付：使用手册、问题排查、脚本说明、版本与兼容声明
+[X] API契约校验与错误码映射（对齐openapi/convert.yml、中文错误提示、参数校验完善）
+
+[X] 四类示例回归测试（Minimal/Custom/Chunking/Extraction/Picture）
+
+[/] 文档与交付：使用手册、问题排查、脚本说明、版本与兼容声明

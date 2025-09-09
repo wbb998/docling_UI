@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Provider } from 'react-redux'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
@@ -45,7 +45,8 @@ import {
   Speed as PerformanceIcon,
   Cloud as RemoteIcon,
   Close as CloseIcon,
-  Warning as WarningIcon
+  Warning as WarningIcon,
+  Storage as StorageIcon
 } from '@mui/icons-material'
 import { store } from './store/store'
 import { FileUploadPanel } from './components/FileUpload/FileUploadPanel'
@@ -55,6 +56,8 @@ import { AdditionalFeaturesPanel, ImageDescriptionMode } from './components/Addi
 import { ExecutionControlPanel } from './components/TaskExecution/ExecutionControlPanel'
 import { ResultPreviewPanel } from './components/ResultManagement/ResultPreviewPanel'
 import ValidationPanel from './components/Validation/ValidationPanel'
+import CacheManager from './components/Cache/CacheManager'
+import { cacheService, useCacheData } from './services/cacheService'
 
 // 导航菜单项类型定义
 interface NavigationItem {
@@ -119,7 +122,8 @@ const navigationItems: NavigationItem[] = [
     icon: <SystemIcon />,
     children: [
       { id: 'performance-debug', label: '性能调试', icon: <PerformanceIcon /> },
-      { id: 'remote-config', label: '远程配置', icon: <RemoteIcon /> }
+      { id: 'remote-config', label: '远程配置', icon: <RemoteIcon /> },
+      { id: 'cache-management', label: '缓存管理', icon: <StorageIcon /> }
     ]
   }
 ]
@@ -215,12 +219,23 @@ const DRAWER_WIDTH = 240
 
 // 主应用组件 - 控制台三栏式布局
 function App() {
-  // 状态管理
-  const [selectedNavItem, setSelectedNavItem] = useState('file-upload') // 当前选中的导航项
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(['file-management']) // 展开的导航组
+  // 缓存数据
+  const cacheData = useCacheData();
+
+  // 状态管理 - 从缓存恢复或使用默认值
+  const [selectedNavItem, setSelectedNavItem] = useState(
+    cacheData?.uiState.selectedNavItem || 'file-upload'
+  );
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(
+    cacheData?.uiState.expandedGroups || ['file-management']
+  );
   const [mobileOpen, setMobileOpen] = useState(false) // 移动端导航抽屉状态
-  const [rightDrawerOpen, setRightDrawerOpen] = useState(false) // 右侧任务抽屉状态
-  const [isAdvancedMode, setIsAdvancedMode] = useState(false) // 简单/高级模式切换
+  const [rightDrawerOpen, setRightDrawerOpen] = useState(
+    cacheData?.uiState.rightDrawerOpen || false
+  );
+  const [isAdvancedMode, setIsAdvancedMode] = useState(
+    cacheData?.uiState.isAdvancedMode || false
+  );
   
   // 文件管理状态
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
@@ -334,6 +349,85 @@ function App() {
 
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+
+  // 缓存初始化和状态恢复
+  useEffect(() => {
+    // 初始化缓存服务
+    cacheService.init();
+    console.log('缓存服务已初始化');
+  }, []);
+
+  // 从缓存恢复状态
+  useEffect(() => {
+    if (cacheData) {
+      // 恢复界面状态
+      if (cacheData.uiState.selectedNavItem !== selectedNavItem) {
+        setSelectedNavItem(cacheData.uiState.selectedNavItem);
+      }
+      if (JSON.stringify(cacheData.uiState.expandedGroups) !== JSON.stringify(expandedGroups)) {
+        setExpandedGroups(cacheData.uiState.expandedGroups);
+      }
+      if (cacheData.uiState.rightDrawerOpen !== rightDrawerOpen) {
+        setRightDrawerOpen(cacheData.uiState.rightDrawerOpen);
+      }
+      if (cacheData.uiState.isAdvancedMode !== isAdvancedMode) {
+        setIsAdvancedMode(cacheData.uiState.isAdvancedMode);
+      }
+
+      // 恢复表单配置
+      if (cacheData.formData.targetModeConfig) {
+        setTargetModeConfig(cacheData.formData.targetModeConfig);
+      }
+      if (cacheData.formData.pipelineConfig) {
+        setPipelineConfig(cacheData.formData.pipelineConfig);
+      }
+      if (cacheData.formData.additionalFeaturesConfig) {
+        setAdditionalFeaturesConfig(cacheData.formData.additionalFeaturesConfig);
+      }
+
+      // 恢复任务状态
+      if (cacheData.taskState.currentJobId) {
+        setCurrentJobId(cacheData.taskState.currentJobId);
+      }
+      if (cacheData.taskState.taskResults) {
+        setTaskResults(cacheData.taskState.taskResults);
+      }
+      if (cacheData.taskState.validationResults) {
+        setValidationResults(cacheData.taskState.validationResults);
+      }
+
+      console.log('状态已从缓存恢复');
+    }
+  }, [cacheData]);
+
+  // 自动保存界面状态到缓存
+  useEffect(() => {
+    cacheService.updateUIState({
+      selectedNavItem,
+      expandedGroups,
+      rightDrawerOpen,
+      isAdvancedMode
+    });
+  }, [selectedNavItem, expandedGroups, rightDrawerOpen, isAdvancedMode]);
+
+  // 自动保存表单数据到缓存
+  useEffect(() => {
+    cacheService.updateFormData({
+      targetModeConfig,
+      pipelineConfig,
+      additionalFeaturesConfig,
+      uploadedFiles
+    });
+  }, [targetModeConfig, pipelineConfig, additionalFeaturesConfig, uploadedFiles]);
+
+  // 自动保存任务状态到缓存
+  useEffect(() => {
+    cacheService.updateTaskState({
+      currentJobId,
+      taskResults,
+      validationResults
+    });
+  }, [currentJobId, taskResults, validationResults]);
 
   // 处理导航组展开/收起
   const handleGroupToggle = (groupId: string) => {
@@ -807,6 +901,30 @@ function App() {
             />
           </Box>
         )
+
+      case 'cache-management':
+        return (
+          <Box sx={{ 
+            p: 3,
+            width: '100%',
+            maxWidth: '100%',
+            boxSizing: 'border-box'
+          }}>
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              mb: 3,
+              width: '100%'
+            }}>
+              <Typography variant="h4" gutterBottom sx={{ m: 0 }}>
+                💾 缓存管理
+              </Typography>
+            </Box>
+            {/* 缓存管理面板 */}
+            <CacheManager showDetails={true} />
+          </Box>
+        )
       
       default:
         return (
@@ -959,27 +1077,45 @@ function App() {
             }}
           >
             {/* 内容滚动容器 */}
-            <Box sx={{ 
-              width: '100%',
-              height: '100%',
-              overflowY: 'auto',
-              overflowX: 'hidden',
-              // 自定义滚动条样式
-              '&::-webkit-scrollbar': {
-                width: '8px',
-              },
-              '&::-webkit-scrollbar-track': {
-                background: '#f1f1f1',
-                borderRadius: '4px',
-              },
-              '&::-webkit-scrollbar-thumb': {
-                background: '#c1c1c1',
-                borderRadius: '4px',
-              },
-              '&::-webkit-scrollbar-thumb:hover': {
-                background: '#a8a8a8',
-              },
-            }}>
+            <Box 
+              sx={{ 
+                width: '100%',
+                height: '100%',
+                overflowY: 'auto',
+                overflowX: 'hidden',
+                // 自定义滚动条样式
+                '&::-webkit-scrollbar': {
+                  width: '8px',
+                },
+                '&::-webkit-scrollbar-track': {
+                  background: '#f1f1f1',
+                  borderRadius: '4px',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  background: '#c1c1c1',
+                  borderRadius: '4px',
+                },
+                '&::-webkit-scrollbar-thumb:hover': {
+                  background: '#a8a8a8',
+                },
+              }}
+              onScroll={(e) => {
+                // 保存当前页面的滚动位置
+                const target = e.target as HTMLElement;
+                cacheService.saveScrollPosition(selectedNavItem, target.scrollTop);
+              }}
+              ref={(ref) => {
+                // 恢复滚动位置
+                if (ref) {
+                  const savedPosition = cacheService.getScrollPosition(selectedNavItem);
+                  if (savedPosition > 0) {
+                    setTimeout(() => {
+                      ref.scrollTop = savedPosition;
+                    }, 100);
+                  }
+                }
+              }}
+            >
               {renderMainContent()}
             </Box>
           </Box>

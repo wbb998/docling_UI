@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useMemo } from 'react'
+import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react'
 import {
   Box,
   Card,
@@ -46,6 +46,8 @@ import {
   PlayArrow as StartIcon,
   Pause as PauseIcon
 } from '@mui/icons-material'
+import { cacheService, FileInfo } from '../../services/cacheService'
+import { fileSessionService, type UploadFileWithSession } from '../../services/fileSessionService'
 
 // 文件状态枚举
 export enum FileStatus {
@@ -110,6 +112,7 @@ interface FileUploadPanelProps {
 export const FileUploadPanel: React.FC<FileUploadPanelProps> = ({ isAdvancedMode, onFilesChange }) => {
   // 状态管理
   const [fileQueue, setFileQueue] = useState<FileItem[]>([])
+  const [cacheRestored, setCacheRestored] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
   const [urlDialogOpen, setUrlDialogOpen] = useState(false)
   const [urlInput, setUrlInput] = useState('')
@@ -148,6 +151,42 @@ export const FileUploadPanel: React.FC<FileUploadPanelProps> = ({ isAdvancedMode
   const fileInputRef = useRef<HTMLInputElement>(null)
   const folderInputRef = useRef<HTMLInputElement>(null)
 
+  // 从会话存储恢复文件信息
+  useEffect(() => {
+    if (!cacheRestored) {
+      const restoreFiles = async () => {
+        try {
+          const restoredSessionFiles = await fileSessionService.restoreFiles()
+          if (restoredSessionFiles.length > 0) {
+            console.log('从会话存储恢复文件信息:', restoredSessionFiles)
+            
+            const restoredFiles: FileItem[] = restoredSessionFiles.map(sessionFile => ({
+              id: sessionFile.id,
+              name: sessionFile.name,
+              originalName: sessionFile.name,
+              size: sessionFile.size,
+              type: sessionFile.type,
+              status: sessionFile.file ? FileStatus.COMPLETED : FileStatus.ERROR,
+              progress: sessionFile.progress,
+              file: sessionFile.file || undefined,
+              uploadTime: sessionFile.uploadTime,
+              selected: false,
+              error: sessionFile.error || undefined
+            }))
+            
+            setFileQueue(restoredFiles)
+            console.log('文件队列已从会话存储恢复:', restoredFiles)
+          }
+        } catch (error) {
+          console.error('从会话存储恢复文件失败:', error)
+        }
+      }
+      
+      restoreFiles()
+      setCacheRestored(true)
+    }
+  }, [cacheRestored])
+
   // 监听文件队列变化，通知父组件
   React.useEffect(() => {
     const validFiles = fileQueue
@@ -156,6 +195,30 @@ export const FileUploadPanel: React.FC<FileUploadPanelProps> = ({ isAdvancedMode
     
     onFilesChange?.(validFiles)
   }, [fileQueue, onFilesChange])
+
+  // 监听文件队列变化，保存到会话存储
+  React.useEffect(() => {
+    if (cacheRestored && fileQueue.length > 0) {
+      const sessionFiles: UploadFileWithSession[] = fileQueue
+        .filter(item => item.file) // 只保存有实际File对象的项
+        .map(item => ({
+          id: item.id,
+          file: item.file!,
+          name: item.name,
+          size: item.size,
+          type: item.type,
+          status: item.status as any, // 转换状态类型
+          progress: item.progress,
+          error: item.error || null,
+          uploadTime: item.uploadTime || new Date()
+        }))
+      
+      // 异步保存到会话存储
+      fileSessionService.saveFiles(sessionFiles).catch(error => {
+        console.error('保存文件到会话存储失败:', error)
+      })
+    }
+  }, [fileQueue, cacheRestored])
 
   // 生成唯一ID
   const generateId = () => Math.random().toString(36).substr(2, 9)
@@ -742,8 +805,8 @@ export const FileUploadPanel: React.FC<FileUploadPanelProps> = ({ isAdvancedMode
                     
                     <ListItemText
                       primary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: '1rem', fontWeight: 500 }}>{file.name}</span>
+                        <Typography component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                          <Typography component="span" sx={{ fontSize: '1rem', fontWeight: 500 }}>{file.name}</Typography>
                           {file.name !== file.originalName && (
                             <Chip label="已重命名" size="small" variant="outlined" />
                           )}
@@ -756,20 +819,20 @@ export const FileUploadPanel: React.FC<FileUploadPanelProps> = ({ isAdvancedMode
                               file.status === FileStatus.UPLOADING ? 'primary' : 'default'
                             }
                           />
-                        </Box>
+                        </Typography>
                       }
                       secondary={
-                        <div>
-                          <div style={{ fontSize: '0.875rem', color: '#666' }}>
+                        <Box component="span">
+                          <Typography component="span" sx={{ fontSize: '0.875rem', color: '#666' }}>
                             {formatFileSize(file.size)}
                             {file.url && ` • 来源: ${file.url}`}
                             {file.uploadTime && ` • ${file.uploadTime.toLocaleTimeString()}`}
-                          </div>
+                          </Typography>
                           {file.status === FileStatus.UPLOADING && (
                             <LinearProgress 
                               variant="determinate" 
                               value={file.progress} 
-                              sx={{ mt: 1 }}
+                              sx={{ mt: 1, display: 'block' }}
                             />
                           )}
                           {file.error && (
@@ -777,7 +840,7 @@ export const FileUploadPanel: React.FC<FileUploadPanelProps> = ({ isAdvancedMode
                               {file.error}
                             </Alert>
                           )}
-                        </div>
+                        </Box>
                       }
                     />
                     

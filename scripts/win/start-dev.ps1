@@ -14,6 +14,6 @@ $port = 8000  # 网关服务端口
 # & .\.venv\Scripts\Activate.ps1  # 激活 Python 虚拟环境
 
 # 启动 FastAPI（uvicorn），指定应用模块路径
-uvicorn services.api_gateway.py.src.main:app --host 0.0.0.0 --port $port --reload  # 启动开发服务器
+uvicorn services.api-gateway.py.src.main:app --host 0.0.0.0 --port $port --reload  # 启动开发服务器
 
 # 提示：如未安装 uvicorn，请先执行：pip install uvicorn fastapi

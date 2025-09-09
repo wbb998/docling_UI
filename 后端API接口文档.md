@@ -2,6 +2,34 @@
 
 本文档为 Docling 前端开发团队提供后端 API 的最终参考。API 设计的核心是灵活性，允许通过单个 `/convert` 端点自由组合各种功能。
 
+## 📋 实现状态更新 (2025/9/7)
+
+**已实现的接口：**
+- ✅ `POST /api/convert` - 任务创建接口（JSON格式，参数校验）
+- ✅ `GET /api/jobs/{job_id}/status` - 任务状态查询
+- ✅ `GET /api/jobs/{job_id}/result` - 任务结果获取
+- ✅ `GET /api/jobs/{job_id}/events` - SSE事件流端点（简化实现）
+- ✅ `GET /healthz` - 健康检查端点
+
+**参数校验已实现：**
+- ✅ 必须参数校验（input_sources）
+- ✅ 参数冲突校验（extraction_schema/chunking_strategy 与 to_formats）
+- ✅ 远程服务依赖校验（enable_remote_services）
+- ✅ 中文错误提示
+
+**前后端联调状态：**
+- ✅ API代理配置（前端5173 → 后端8000）
+- ✅ 任务创建与状态轮询正常
+- ✅ 错误码中文化映射
+- ✅ DOM嵌套问题修复
+- ✅ JavaScript错误修复
+
+**当前运行状态：**
+- 后端API服务器：http://localhost:8000 ✅ 运行中
+- 前端开发服务器：http://localhost:5173 ✅ 运行中
+- API文档：http://localhost:8000/docs ✅ 可访问
+=======
+
 ## 1. 核心端点
 
 - **Endpoint**: `POST /convert`
@@ -281,7 +309,7 @@ API响应将包含任务的状态和结果。
 
 ## 8. 错误码与错误响应结构（新增）
 
-- 统一错误结构：
+### 8.1 统一错误结构
 ```json
 {
   "code": "E001_INVALID_INPUT",
@@ -290,16 +318,26 @@ API响应将包含任务的状态和结果。
 }
 ```
 
-- 常用错误码：
-  - `E001_INVALID_INPUT`：非法参数/组合冲突
-  - `E101_DOWNLOAD_FAILED`：URL 下载失败/超时
-  - `E201_OCR_FAILED`：OCR 引擎错误
-  - `E301_VLM_REMOTE_AUTH`：远程 VLM 认证/权限错误
-  - `E302_VLM_REMOTE_TIMEOUT`：远程 VLM 超时
-  - `E401_TIMEOUT`：文档处理超时（`document_timeout`）
-  - `E5XX_INTERNAL`：系统内部错误
+### 8.2 已实现的错误码
+- ✅ `E001_INVALID_INPUT`：非法参数/组合冲突
+  - 缺少必须参数：input_sources
+  - 参数组合冲突：extraction_schema/chunking_strategy 与 to_formats
+  - 远程服务依赖：picture_description_options.type=remote 需要 enable_remote_services
+- ✅ `E404_JOB_NOT_FOUND`：任务不存在
+- ✅ `E400_JOB_NOT_COMPLETED`：任务尚未完成
+- ✅ `E5XX_INTERNAL`：系统内部错误
 
-- 错误信息要求中文可读提示，日志与第三方错误信息应放入 `details`，敏感信息需脱敏。
+### 8.3 计划实现的错误码
+- `E101_DOWNLOAD_FAILED`：URL 下载失败/超时
+- `E201_OCR_FAILED`：OCR 引擎错误
+- `E301_VLM_REMOTE_AUTH`：远程 VLM 认证/权限错误
+- `E302_VLM_REMOTE_TIMEOUT`：远程 VLM 超时
+- `E401_TIMEOUT`：文档处理超时（`document_timeout`）
+
+### 8.4 错误信息规范
+- ✅ 错误信息中文可读提示
+- ✅ 日志与第三方错误信息放入 `details`
+- ✅ 敏感信息脱敏处理
 
 ## 9. 异步任务接口（可选增强）
 

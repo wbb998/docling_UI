@@ -780,11 +780,9 @@ export const ResultPreviewPanel: React.FC<ResultPreviewPanelProps> = ({
                       {getFileTypeIcon(file.fileType)}
                     </ListItemIcon>
                     <ListItemText
-                      primary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            {file.outputFilename}
-                          </Typography>
+                      primary={file.outputFilename}
+                      secondary={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
                           <Chip 
                             label={statusInfo.label}
                             color={statusInfo.color as any}
